@@ -1,0 +1,375 @@
+<script>
+	import Scroller from '$lib/components/Scroller.svelte';
+	import OgMeta from '$lib/components/OgMeta.svelte';
+
+	let { data } = $props();
+
+	let index = $state(0);
+	let progress = $state(0);
+
+	const steps = [
+		{
+			id: 'hook',
+			text: 'Every year, sometime in September, it starts. A few maples on a hillside in Maine go first. Then it moves — south, down from elevation, county by county — until all of New England is on fire.'
+		},
+		{
+			id: 'science',
+			text: "Leaves don't change because of temperature. They change because of light. As days shorten past a threshold, trees begin withdrawing chlorophyll — the green fades, and the reds and yellows that were always there become visible."
+		},
+		{
+			id: 'pace',
+			text: 'Temperature determines the pace. Cold nights below 50°F accelerate the process. A September with many cold nights means an early, intense peak. A warm September pushes it late and mutes the color.'
+		},
+		{
+			id: 'historical',
+			text: 'The wave is visible in decades of data. Northern Maine peaks in late September. Connecticut peaks in mid-October. The same pattern, year after year — with variation of roughly one to two weeks depending on the season.'
+		},
+		{
+			id: 'forecast',
+			text: "This year's forecast is built from that pattern. Summer temperatures, the 2026 drought index, and the historical relationship between cold nights and peak date — combined into a county-level prediction."
+		},
+		{
+			id: 'calendar',
+			text: "When should you go? The forecast below shows predicted peak windows by region — from Northern Maine's late-September peak to Southern New England's slower, later turn."
+		}
+	];
+</script>
+
+<OgMeta
+	title="When Will the Leaves Turn?"
+	description="A data-driven forecast of peak fall foliage across the Northeast — by county, by week."
+	ogImage="/og/foliage-2026.png"
+	url="https://thetangle.io/work/foliage-2026"
+/>
+
+<article class="story">
+	<!-- Story header -->
+	<header class="story-header">
+		<div class="header-inner">
+			<div class="story-tags">
+				<span class="tag">environment</span>
+				<span class="tag">forecast</span>
+				<span class="tag">maps</span>
+			</div>
+			<h1 class="story-title">When Will the Leaves Turn?</h1>
+			<p class="story-dek">
+				A data-driven forecast of peak fall foliage across the Northeast, built from historical
+				climate data and the known science of why leaves change color.
+			</p>
+			<div class="story-byline">
+				<span>By Zach Alexander</span>
+				<span class="separator">·</span>
+				<time>September 2026</time>
+			</div>
+		</div>
+	</header>
+
+	<!-- Scrollytelling section -->
+	<Scroller bind:index bind:progress>
+		{#snippet background()}
+			<div class="map-container">
+				<!-- TODO: Replace with D3 choropleth once data pipeline is built -->
+				<svg
+					class="map-placeholder"
+					viewBox="0 0 800 500"
+					aria-label="Northeast foliage forecast map — visualization in progress"
+				>
+					<rect width="800" height="500" fill="#2D3B2A"></rect>
+					<text
+						x="400"
+						y="230"
+						text-anchor="middle"
+						fill="#8BAA7A"
+						font-size="18"
+						font-family="Georgia, serif"
+					>
+						Northeast Foliage Map
+					</text>
+					<text
+						x="400"
+						y="260"
+						text-anchor="middle"
+						fill="#5A7A50"
+						font-size="13"
+						font-family="system-ui, sans-serif"
+					>
+						D3 choropleth · data pipeline in progress
+					</text>
+					<text
+						x="400"
+						y="300"
+						text-anchor="middle"
+						fill="#3A5A30"
+						font-size="11"
+						font-family="monospace"
+					>
+						step {index + 1} of {steps.length}
+					</text>
+				</svg>
+			</div>
+		{/snippet}
+
+		{#snippet foreground()}
+			<div class="cards-rail">
+				<div class="cards-spacer"></div>
+
+				{#each steps as step, i}
+					<div class="step" aria-hidden={i !== index}>
+						<div class="scroll-card" class:active={i === index}>
+							<p>{step.text}</p>
+						</div>
+					</div>
+				{/each}
+
+				<div class="cards-spacer"></div>
+			</div>
+		{/snippet}
+	</Scroller>
+
+	<!-- Calendar section -->
+	<section class="calendar-section">
+		<div class="section-inner">
+			<h2>When to go — 2026 peak windows by region</h2>
+			<p class="section-note">
+				Predicted peak foliage dates based on historical patterns and 2026 summer temperature data.
+				Peaks typically last 10–14 days at maximum color.
+			</p>
+
+			<div class="region-list" role="table" aria-label="Peak foliage dates by region">
+				{#each data.regions as region}
+					<div class="region-row" role="row">
+						<span class="region-name" role="cell">{region.name}</span>
+						<span class="region-dates" role="cell">{region.peakStart} – {region.peakEnd}</span>
+					</div>
+				{/each}
+			</div>
+		</div>
+	</section>
+
+	<!-- Methodology -->
+	<section class="methodology">
+		<div class="section-inner">
+			<h3>How this forecast was built</h3>
+			<p>
+				Peak foliage dates are driven primarily by cumulative cold nights (below 50°F) during
+				August and September. This model fits a regression between historical cold night counts and
+				observed peak dates from the USA National Phenology Network and state foliage trackers (VT,
+				NH, ME, NY), then applies it to 2026 temperature data from NOAA.
+			</p>
+			<p>
+				County-level temperature data from the <a
+					href="https://prism.oregonstate.edu"
+					target="_blank"
+					rel="noopener noreferrer">PRISM Climate Group</a
+				> (4km gridded daily temperatures). Elevation gradient: approximately one week earlier per
+				1,000 feet of elevation gain.
+			</p>
+		</div>
+	</section>
+</article>
+
+<style>
+	/* ── Story header ─────────────────────────────────── */
+	.story-header {
+		padding: 64px 24px 56px;
+		border-bottom: 1px solid var(--border);
+	}
+
+	.header-inner {
+		max-width: 680px;
+		margin: 0 auto;
+	}
+
+	.story-tags {
+		display: flex;
+		gap: 8px;
+		margin-bottom: 20px;
+	}
+
+	.tag {
+		font-size: 0.6875rem;
+		font-weight: 600;
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+		color: var(--text-muted);
+	}
+
+	.story-title {
+		font-size: clamp(2rem, 5vw, 3.25rem);
+		font-weight: 800;
+		letter-spacing: -0.03em;
+		line-height: 1.05;
+		margin-bottom: 20px;
+	}
+
+	.story-dek {
+		font-size: 1.125rem;
+		line-height: 1.6;
+		color: var(--text-muted);
+		margin-bottom: 24px;
+	}
+
+	.story-byline {
+		font-size: 0.8125rem;
+		color: var(--text-light);
+		display: flex;
+		gap: 8px;
+	}
+
+	.separator {
+		color: var(--border);
+	}
+
+	/* ── Map background ───────────────────────────────── */
+	.map-container {
+		width: 100%;
+		height: 100%;
+		background: #1e2b1c;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: 24px;
+	}
+
+	.map-placeholder {
+		width: 100%;
+		max-width: 860px;
+		height: auto;
+	}
+
+	/* ── Scroll cards ─────────────────────────────────── */
+	.cards-rail {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-end;
+		padding: 0 48px 0 0;
+		pointer-events: none;
+	}
+
+	.cards-spacer {
+		height: 50vh;
+	}
+
+	.step {
+		pointer-events: all;
+		width: min(380px, 90vw);
+		margin-bottom: 60vh;
+	}
+
+	.scroll-card {
+		background: rgba(248, 247, 244, 0.9);
+		backdrop-filter: blur(10px);
+		-webkit-backdrop-filter: blur(10px);
+		border: 1px solid rgba(224, 222, 216, 0.5);
+		border-radius: 6px;
+		padding: 28px 32px;
+		opacity: 0.35;
+		transform: translateY(6px);
+		transition:
+			opacity 0.35s ease,
+			transform 0.35s ease;
+	}
+
+	.scroll-card.active {
+		opacity: 1;
+		transform: translateY(0);
+	}
+
+	.scroll-card p {
+		font-size: 1rem;
+		line-height: 1.7;
+		color: var(--text);
+	}
+
+	/* ── Calendar section ─────────────────────────────── */
+	.calendar-section,
+	.methodology {
+		padding: 80px 24px 0;
+	}
+
+	.section-inner {
+		max-width: 680px;
+		margin: 0 auto;
+	}
+
+	.calendar-section h2 {
+		font-size: 1.5rem;
+		font-weight: 700;
+		letter-spacing: -0.02em;
+		margin-bottom: 12px;
+	}
+
+	.section-note {
+		font-size: 0.9375rem;
+		color: var(--text-muted);
+		line-height: 1.6;
+		margin-bottom: 36px;
+	}
+
+	.region-list {
+		border-top: 1px solid var(--border);
+	}
+
+	.region-row {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		padding: 16px 0;
+		border-bottom: 1px solid var(--border);
+	}
+
+	.region-name {
+		font-size: 0.9375rem;
+		font-weight: 500;
+	}
+
+	.region-dates {
+		font-size: 0.875rem;
+		color: var(--text-muted);
+		font-variant-numeric: tabular-nums;
+	}
+
+	/* ── Methodology ──────────────────────────────────── */
+	.methodology h3 {
+		font-size: 0.75rem;
+		font-weight: 600;
+		text-transform: uppercase;
+		letter-spacing: 0.06em;
+		color: var(--text-muted);
+		margin-bottom: 16px;
+	}
+
+	.methodology p {
+		font-size: 0.9375rem;
+		line-height: 1.7;
+		color: var(--text-muted);
+		margin-bottom: 12px;
+	}
+
+	.methodology a {
+		text-decoration: underline;
+		text-underline-offset: 3px;
+	}
+
+	/* ── Responsive ───────────────────────────────────── */
+	@media (max-width: 720px) {
+		.story-header {
+			padding: 40px 16px 32px;
+		}
+
+		.cards-rail {
+			align-items: center;
+			padding: 0 16px;
+		}
+
+		.step {
+			width: 100%;
+			margin-bottom: 40vh;
+		}
+
+		.calendar-section,
+		.methodology {
+			padding: 56px 16px 0;
+		}
+	}
+</style>
