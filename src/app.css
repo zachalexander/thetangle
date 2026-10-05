@@ -1,27 +1,57 @@
-*, *::before, *::after {
+*,
+*::before,
+*::after {
 	box-sizing: border-box;
 	margin: 0;
 	padding: 0;
 }
 
+/*
+  Design tokens — "Gallery Index" direction (see BRAND.md).
+  Site chrome stays neutral; each story brings its own colour via
+  `color` / `ink` in its metadata (src/lib/stories/*.js).
+*/
 :root {
-	--bg: #F8F7F4;
-	--bg-nav: #F2F1EE;
-	--text: #1C1B19;
-	--text-muted: #7D7B74;
-	--text-light: #A09D96;
-	--border: #E0DED8;
-	--nav-height: 56px;
-	--max-width: 1140px;
-	--font-sans: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica, Arial, sans-serif;
-	--font-serif: Georgia, 'Times New Roman', serif;
+	/* Chrome */
+	--bg: #fffdf8;
+	--bg-nav: #fffdf8;
+	--surface: #efeae0;
+	--text: #16151a;
+	--text-muted: #5f5c55;
+	--text-light: #77736b;
+	--border: #16151a;
+	--border-soft: #ddd7cb;
+
+	/* Accent used by chrome when no story colour applies */
+	--accent: #3b4fd9;
+
+	/* Tile palette — pick from these when giving a story its colour */
+	--tile-blue: #3b4fd9;
+	--tile-yellow: #f3c94b;
+	--tile-mint: #9ed3c6;
+	--tile-coral: #f2a99a;
+	--tile-rust: #b4461b;
+
+	/* Type */
+	--font-display: 'Bricolage Grotesque', 'Karla', system-ui, sans-serif;
+	--font-body: 'Karla', system-ui, sans-serif;
+	--font-sans: var(--font-body);
+	--font-serif: var(--font-display);
 	--font-mono: 'SF Mono', 'Fira Code', 'Fira Mono', monospace;
+
+	/* Shape & layout */
+	--radius-tile: 14px;
+	--radius-pill: 999px;
+	--rule: 2px solid var(--border);
+	--nav-height: 64px;
+	--max-width: 1240px;
+	--gutter: 16px;
 }
 
 html {
 	background-color: var(--bg);
 	color: var(--text);
-	font-family: var(--font-sans);
+	font-family: var(--font-body);
 	font-size: 16px;
 	line-height: 1.5;
 	-webkit-font-smoothing: antialiased;
@@ -50,6 +80,56 @@ h3,
 h4,
 h5,
 h6 {
+	font-family: var(--font-display);
+	font-weight: 800;
+	line-height: 1.05;
+	letter-spacing: -0.02em;
+}
+
+:focus-visible {
+	outline: 3px solid var(--accent);
+	outline-offset: 3px;
+}
+
+/* Shared: small uppercase label used on tiles, story headers, sections */
+.eyebrow {
+	font-family: var(--font-body);
+	font-size: 0.8125rem;
 	font-weight: 700;
-	line-height: 1.2;
+	letter-spacing: 0.1em;
+	text-transform: uppercase;
+}
+
+/* Shared: outlined pill button / link */
+.pill {
+	display: inline-flex;
+	align-items: center;
+	min-height: 44px;
+	padding: 0 18px;
+	border: var(--rule);
+	border-radius: var(--radius-pill);
+	font-family: var(--font-body);
+	font-size: 1rem;
+	font-weight: 700;
+	background: transparent;
+	color: var(--text);
+	cursor: pointer;
+	transition:
+		background 0.15s ease,
+		color 0.15s ease;
+}
+
+.pill:hover,
+.pill[aria-pressed='true'] {
+	background: var(--text);
+	color: var(--bg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		transition-duration: 0.01ms !important;
+		animation-duration: 0.01ms !important;
+	}
 }
