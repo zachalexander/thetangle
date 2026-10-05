@@ -4,14 +4,14 @@
 	import { stories } from '$lib/stories/index.js';
 </script>
 
-<OgMeta title="The Tangle" description="Data stories and visualizations by Zach Alexander." />
+<OgMeta title="The Tangle" description="Visual essays by Zach Alexander." />
 
 <main class="home">
 	<div class="container">
 		<header class="site-intro">
 			<h1 class="wordmark">the tangle</h1>
 			<p>
-				Data stories and visualizations. Each piece is a question worth asking — answered with
+				Visual essays. Each piece is a question worth asking — answered with
 				numbers, maps, and honesty.
 			</p>
 		</header>

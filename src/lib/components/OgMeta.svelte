@@ -1,7 +1,7 @@
 <script>
 	let {
 		title = 'The Tangle',
-		description = 'Data stories and visualizations.',
+		description = 'Visual essays.',
 		ogImage = '/og/default.png',
 		url = 'https://thetangle.io'
 	} = $props();

@@ -2,7 +2,7 @@
 	import OgMeta from '$lib/components/OgMeta.svelte';
 </script>
 
-<OgMeta title="About" description="Data stories and visualizations by Zach Alexander." />
+<OgMeta title="About" description="Visual essays by Zach Alexander." />
 
 <main class="about">
 	<div class="container">
@@ -12,7 +12,7 @@
 
 		<section class="bio">
 			<p>
-				The Tangle is a site for data stories and visualizations — pieces built around the belief
+				The Tangle is a site for visual essays — pieces built around the belief
 				that the right number, shown honestly, can change how you see something.
 			</p>
 			<p>

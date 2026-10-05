@@ -4,7 +4,7 @@
 	import { stories } from '$lib/stories/index.js';
 </script>
 
-<OgMeta title="Work" description="Data stories and visualizations by Zach Alexander." />
+<OgMeta title="Work" description="Visual essays by Zach Alexander." />
 
 <main class="work-index">
 	<div class="container">

@@ -1,7 +1,7 @@
 <footer class="footer">
 	<div class="footer-inner">
 		<span class="wordmark">the tangle</span>
-		<span class="muted">Data stories &amp; visualizations by Zach Alexander</span>
+		<span class="muted">Visual essays by Zach Alexander</span>
 	</div>
 </footer>
 
