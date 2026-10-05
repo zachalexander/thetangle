@@ -2,7 +2,7 @@
 	import { page } from '$app/stores';
 </script>
 
-<nav class="nav">
+<nav class="nav" aria-label="Main">
 	<div class="nav-inner">
 		<a href="/" class="wordmark">the tangle</a>
 		<div class="nav-links">
@@ -21,54 +21,58 @@
 		right: 0;
 		height: var(--nav-height);
 		background: var(--bg-nav);
-		border-bottom: 1px solid var(--border);
 		z-index: 100;
 	}
 
 	.nav-inner {
 		max-width: var(--max-width);
 		margin: 0 auto;
-		padding: 0 24px;
+		padding: 0 var(--gutter);
 		height: 100%;
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
+		gap: 16px;
 	}
 
 	.wordmark {
-		font-family: var(--font-serif);
-		font-size: 1.125rem;
-		font-weight: 400;
-		letter-spacing: -0.01em;
+		font-family: var(--font-display);
+		font-size: 1.5rem;
+		font-weight: 800;
+		letter-spacing: -0.04em;
 		color: var(--text);
 	}
 
 	.nav-links {
 		display: flex;
-		gap: 32px;
+		gap: 24px;
 	}
 
 	.nav-links a {
-		font-size: 0.8125rem;
+		font-size: 1rem;
 		font-weight: 500;
-		color: var(--text-muted);
-		letter-spacing: 0.06em;
-		text-transform: uppercase;
-		transition: color 0.15s ease;
+		color: var(--text);
+		padding: 10px 0;
+		border-bottom: 2px solid transparent;
+		transition: border-color 0.15s ease;
 	}
 
 	.nav-links a:hover,
 	.nav-links a.active {
-		color: var(--text);
+		border-bottom-color: var(--text);
 	}
 
-	@media (max-width: 600px) {
+	@media (max-width: 480px) {
+		.wordmark {
+			font-size: 1.25rem;
+		}
+
 		.nav-links {
-			gap: 20px;
+			gap: 16px;
 		}
 
 		.nav-links a {
-			font-size: 0.75rem;
+			font-size: 0.9375rem;
 		}
 	}
 </style>

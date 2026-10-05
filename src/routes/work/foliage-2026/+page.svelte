@@ -1,6 +1,7 @@
 <script>
 	import Scroller from '$lib/components/Scroller.svelte';
 	import OgMeta from '$lib/components/OgMeta.svelte';
+	import story from '$lib/stories/foliage-2026.js';
 
 	let { data } = $props();
 
@@ -42,14 +43,14 @@
 	url="https://thetangle.io/work/foliage-2026"
 />
 
-<article class="story">
-	<!-- Story header -->
+<article class="story" style:--story-color={story.color} style:--story-ink={story.ink}>
+	<!-- Story header: the story's tile, opened up -->
 	<header class="story-header">
 		<div class="header-inner">
 			<div class="story-tags">
-				<span class="tag">environment</span>
-				<span class="tag">forecast</span>
-				<span class="tag">maps</span>
+				{#each story.tags as tag}
+					<span class="tag">{tag}</span>
+				{/each}
 			</div>
 			<h1 class="story-title">When Will the Leaves Turn?</h1>
 			<p class="story-dek">
@@ -63,6 +64,8 @@
 			</div>
 		</div>
 	</header>
+
+	<div class="scroller-gap"></div>
 
 	<!-- Scrollytelling section -->
 	<Scroller bind:index bind:progress>
@@ -151,8 +154,8 @@
 		<div class="section-inner">
 			<h3>How this forecast was built</h3>
 			<p>
-				Peak foliage dates are driven primarily by cumulative cold nights (below 50°F) during
-				August and September. This model fits a regression between historical cold night counts and
+				Peak foliage dates are driven primarily by cumulative cold nights (below 50°F) during August
+				and September. This model fits a regression between historical cold night counts and
 				observed peak dates from the USA National Phenology Network and state foliage trackers (VT,
 				NH, ME, NY), then applies it to 2026 temperature data from NOAA.
 			</p>
@@ -161,8 +164,8 @@
 					href="https://prism.oregonstate.edu"
 					target="_blank"
 					rel="noopener noreferrer">PRISM Climate Group</a
-				> (4km gridded daily temperatures). Elevation gradient: approximately one week earlier per
-				1,000 feet of elevation gain.
+				> (4km gridded daily temperatures). Elevation gradient: approximately one week earlier per 1,000
+				feet of elevation gain.
 			</p>
 		</div>
 	</section>
@@ -171,53 +174,69 @@
 <style>
 	/* ── Story header ─────────────────────────────────── */
 	.story-header {
-		padding: 64px 24px 56px;
-		border-bottom: 1px solid var(--border);
+		max-width: var(--max-width);
+		margin: 24px auto 0;
+		padding: 0 var(--gutter);
 	}
 
 	.header-inner {
-		max-width: 680px;
-		margin: 0 auto;
+		min-height: 480px;
+		display: flex;
+		flex-direction: column;
+		justify-content: flex-end;
+		padding: clamp(28px, 5vw, 56px);
+		border-radius: var(--radius-tile);
+		background: var(--story-color);
+		color: var(--story-ink);
 	}
 
 	.story-tags {
 		display: flex;
+		flex-wrap: wrap;
 		gap: 8px;
-		margin-bottom: 20px;
+		margin-bottom: auto;
+		padding-bottom: 40px;
 	}
 
 	.tag {
-		font-size: 0.6875rem;
-		font-weight: 600;
-		letter-spacing: 0.08em;
+		font-size: 0.8125rem;
+		font-weight: 700;
+		letter-spacing: 0.1em;
 		text-transform: uppercase;
-		color: var(--text-muted);
+		padding: 5px 14px;
+		border: 2px solid currentColor;
+		border-radius: var(--radius-pill);
 	}
 
 	.story-title {
-		font-size: clamp(2rem, 5vw, 3.25rem);
-		font-weight: 800;
-		letter-spacing: -0.03em;
-		line-height: 1.05;
+		font-size: clamp(2.75rem, 7vw, 6rem);
+		line-height: 0.95;
+		letter-spacing: -0.035em;
+		max-width: 14ch;
 		margin-bottom: 20px;
 	}
 
 	.story-dek {
-		font-size: 1.125rem;
-		line-height: 1.6;
-		color: var(--text-muted);
-		margin-bottom: 24px;
+		font-size: 1.25rem;
+		line-height: 1.45;
+		max-width: 36em;
+		margin-bottom: 20px;
 	}
 
 	.story-byline {
-		font-size: 0.8125rem;
-		color: var(--text-light);
+		font-size: 0.9375rem;
+		font-weight: 500;
 		display: flex;
+		flex-wrap: wrap;
 		gap: 8px;
 	}
 
 	.separator {
-		color: var(--border);
+		opacity: 0.7;
+	}
+
+	.scroller-gap {
+		height: 48px;
 	}
 
 	/* ── Map background ───────────────────────────────── */
@@ -257,12 +276,11 @@
 	}
 
 	.scroll-card {
-		background: rgba(248, 247, 244, 0.9);
-		backdrop-filter: blur(10px);
-		-webkit-backdrop-filter: blur(10px);
-		border: 1px solid rgba(224, 222, 216, 0.5);
-		border-radius: 6px;
+		background: var(--bg);
+		border-radius: var(--radius-tile);
+		border-top: 8px solid var(--story-color);
 		padding: 28px 32px;
+		box-shadow: 0 12px 32px rgba(22, 21, 26, 0.18);
 		opacity: 0.35;
 		transform: translateY(6px);
 		transition:
@@ -276,7 +294,7 @@
 	}
 
 	.scroll-card p {
-		font-size: 1rem;
+		font-size: 1.125rem;
 		line-height: 1.7;
 		color: var(--text);
 	}
@@ -293,9 +311,7 @@
 	}
 
 	.calendar-section h2 {
-		font-size: 1.5rem;
-		font-weight: 700;
-		letter-spacing: -0.02em;
+		font-size: clamp(1.75rem, 4vw, 2.5rem);
 		margin-bottom: 12px;
 	}
 
@@ -307,7 +323,7 @@
 	}
 
 	.region-list {
-		border-top: 1px solid var(--border);
+		border-top: var(--rule);
 	}
 
 	.region-row {
@@ -315,7 +331,7 @@
 		justify-content: space-between;
 		align-items: center;
 		padding: 16px 0;
-		border-bottom: 1px solid var(--border);
+		border-bottom: 1px solid var(--border-soft);
 	}
 
 	.region-name {
@@ -331,8 +347,9 @@
 
 	/* ── Methodology ──────────────────────────────────── */
 	.methodology h3 {
-		font-size: 0.75rem;
-		font-weight: 600;
+		font-family: var(--font-body);
+		font-size: 0.8125rem;
+		font-weight: 700;
 		text-transform: uppercase;
 		letter-spacing: 0.06em;
 		color: var(--text-muted);
@@ -353,8 +370,8 @@
 
 	/* ── Responsive ───────────────────────────────────── */
 	@media (max-width: 720px) {
-		.story-header {
-			padding: 40px 16px 32px;
+		.header-inner {
+			min-height: 400px;
 		}
 
 		.cards-rail {

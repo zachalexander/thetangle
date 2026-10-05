@@ -7,5 +7,8 @@ export default {
 	tags: ['environment', 'forecast', 'maps'],
 	ogImage: '/og/foliage-2026.png',
 	featured: true,
-	status: 'building'
+	status: 'building',
+	// Story colour world: tile background + text colour on it (keep ≥4.5:1 contrast)
+	color: '#B4461B',
+	ink: '#FFFDF8'
 };
