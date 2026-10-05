@@ -25,4 +25,3 @@ vite.config.ts.timestamp-*
 # Raw geodata (large source files, not for repo)
 *.zip
 data/
-src/lib/data/
