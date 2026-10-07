@@ -1,4 +1,4 @@
-# thetangle.io — Story & Viz Ideas
+# thewildplot.io — Story & Viz Ideas
 
 ## Format Key
 - [S] = Scrollytelling piece (Pudding-style)

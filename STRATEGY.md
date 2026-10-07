@@ -1,4 +1,4 @@
-# thetangle.io — Strategy & Success Factors
+# thewildplot.io — Strategy & Success Factors
 
 ---
 
@@ -7,7 +7,7 @@
 Add on day one — before you have traffic, so you have a baseline to measure against.
 
 ### Why not Google Analytics
-GA undercounts traffic significantly — and it's worst for thetangle.io's exact audience:
+GA undercounts traffic significantly — and it's worst for thewildplot.io's exact audience:
 - **Ad blockers** block GA by default (uBlock Origin, Brave, Firefox ETP). Tech-adjacent
   audiences (data people, developers, Reddit/HN users) have 40–60% ad blocker adoption.
   GA could be missing nearly half of actual visitors.
@@ -21,7 +21,7 @@ GA undercounts traffic significantly — and it's worst for thetangle.io's exact
 - Shows what matters: traffic source, top pages, referrers — clean and simple
 
 **Use Plausible's proxy mode** — serves the analytics script from your own domain
-(e.g. `thetangle.io/js/script.js` instead of `plausible.io/js/script.js`), defeating
+(e.g. `thewildplot.io/js/script.js` instead of `plausible.io/js/script.js`), defeating
 most ad blockers. This is the closest you'll get to accurate counts without a server.
 Still expect ~10–20% undercounting vs. ~40–60% with GA.
 
@@ -57,7 +57,7 @@ losing momentum entirely. Guard against this:
 
 ## Story Selection Criteria
 
-Not every interesting dataset makes a good thetangle story. Before committing, ask:
+Not every interesting dataset makes a good thewildplot story. Before committing, ask:
 
 | Question | Why it matters |
 |---|---|
@@ -67,7 +67,7 @@ Not every interesting dataset makes a good thetangle story. Before committing, a
 | Can it be explained in one sentence? | If you can't pitch it simply, the viz can't either |
 | Does it produce a visually distinctive output? | If the screenshot doesn't make someone stop scrolling, it won't spread |
 
-A good thetangle story answers yes to at least 3 of these.
+A good thewildplot story answers yes to at least 3 of these.
 
 ### The Pudding test (most important filter)
 The Pudding's biggest stories — rapper vocabulary, film dialogue gender breakdown — went
@@ -79,7 +79,7 @@ If yes, data gives them ammunition. If no, you're trying to make people care fro
 
 - Foliage timing: New Englanders are deeply passionate about fall foliage — ✓
 - "Spoonful of sugar" test: does it feel fun on the surface but carry real depth underneath?
-  The best thetangle stories should pass this — accessible to casual readers, substantive
+  The best thewildplot stories should pass this — accessible to casual readers, substantive
   for serious ones. Both groups share for different reasons.
 
 ---
@@ -125,29 +125,29 @@ credibility problem. Pick a strategy before publishing.
 
 ## Personal Brand Connection
 
-thetangle.io will grow faster if people know there's a person behind it.
+thewildplot.io will grow faster if people know there's a person behind it.
 
 **The about page is not a resume — it's an answer to "why should I trust this?"**
 
 Include:
 - Short bio and photo
 - Your background in data and analytics (Birdland Metrics, data engineering work)
-- What thetangle is and why you built it
+- What thewildplot is and why you built it
 - A subtle "work with me" path if you're open to consulting leads
 
-Journalists and writers want to know who they're crediting. "A data viz by thetangle.io"
+Journalists and writers want to know who they're crediting. "A data viz by thewildplot.io"
 is less citable than "built by [name], who also built the Birdland Metrics ELO model."
 
 ---
 
 ## Cross-Promotion with Birdland Metrics
 
-You have an existing audience at birdland-metrics.com — seed thetangle with it from day one.
+You have an existing audience at birdland-metrics.com — seed thewildplot with it from day one.
 
-- Link to thetangle prominently from Birdland's nav or footer
-- Add a "from the person who built Birdland Metrics" line on the thetangle about page
+- Link to thewildplot prominently from Birdland's nav or footer
+- Add a "from the person who built Birdland Metrics" line on the thewildplot about page
 - Bidirectional links build domain authority for both sites (SEO benefit)
-- Birdland readers who care about data and analysis are exactly the thetangle audience
+- Birdland readers who care about data and analysis are exactly the thewildplot audience
 
 ---
 

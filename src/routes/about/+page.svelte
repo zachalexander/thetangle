@@ -12,7 +12,7 @@
 
 		<section class="bio">
 			<p>
-				The Tangle is a site for visual essays — pieces built around the belief
+				The Wild Plot is a site for visual essays — pieces built around the belief
 				that the right number, shown honestly, can change how you see something.
 			</p>
 			<p>

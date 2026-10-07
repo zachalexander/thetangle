@@ -1,4 +1,4 @@
-# thetangle.io — Social Screenshot Pipeline
+# thewildplot.io — Social Screenshot Pipeline
 
 ## Overview
 
@@ -58,7 +58,7 @@ The biggest source of screenshot breakage is fonts. Three rules:
 All font files live in `static/fonts/` and are referenced via `@font-face`.
 Commercial Type fonts (Orlando, Styrene) cannot be served from a public CDN
 anyway — self-hosting is required by their license. This also means the
-Playwright Lambda always finds fonts at a predictable URL on thetangle.io.
+Playwright Lambda always finds fonts at a predictable URL on thewildplot.io.
 
 ```css
 @font-face {
@@ -110,12 +110,12 @@ for (const format of formats) {
     deviceScaleFactor: 2, // retina quality output
   });
   const page = await context.newPage();
-  await page.goto(`https://thetangle.io/work/${slug}/share/${format.name}`);
+  await page.goto(`https://thewildplot.io/work/${slug}/share/${format.name}`);
   await page.waitForLoadState('networkidle');
   await page.waitForFunction(() => document.fonts.ready);
   const buffer = await page.screenshot({ type: 'png' });
   await s3.putObject({
-    Bucket: 'thetangle-assets',
+    Bucket: 'thewildplot-assets',
     Key: `social/${slug}/${format.name}.png`,
     Body: buffer,
     ContentType: 'image/png',
@@ -126,7 +126,7 @@ for (const format of formats) {
 
 ### S3 output structure
 ```
-s3://thetangle-assets/
+s3://thewildplot-assets/
   social/
     foliage-2026/
       landscape.png   ← Twitter/X, Bluesky (1200×628 @2x)
@@ -143,7 +143,7 @@ s3://thetangle-assets/
 ## Trigger
 
 Screenshots Lambda runs after each Amplify deploy:
-- Amplify build completes → build webhook → triggers `thetangle-screenshots` Lambda
+- Amplify build completes → build webhook → triggers `thewildplot-screenshots` Lambda
 - Lambda iterates over all stories in the registry and regenerates all formats
 - Or: trigger per-story only (pass slug as event payload) for efficiency
 

@@ -1,4 +1,4 @@
-# thetangle.io — Brand & Design
+# thewildplot.io — Brand & Design
 
 ## Aesthetic Direction
 
@@ -16,7 +16,7 @@ Tokens live in `src/app.css` (`:root`).
 - **Display / wordmark / headings**: Bricolage Grotesque, weights 600 and 800 (Google Fonts).
   Chosen over Syne, which felt too stretched at heavy weights.
 - **Body / UI**: Karla, weights 400 / 500 / 700 (Google Fonts)
-- Wordmark is set lowercase: `the tangle`, tight negative tracking
+- Wordmark is set lowercase: `the wild plot`, tight negative tracking
 - Labels ("eyebrows"): Karla 700, uppercase, wide tracking
 
 ---

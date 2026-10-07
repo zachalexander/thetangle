@@ -30,10 +30,10 @@ and what it couldn't.
 ## What Makes This Irreplaceable
 
 Nobody else has this dataset. It cannot be scraped, downloaded, or replicated.
-The personal logger you're building (log.thetangle.io) is the data pipeline
+The personal logger you're building (log.thewildplot.io) is the data pipeline
 for this story. The dada counter is the first chapter.
 
-This is thetangle's "Dear Data" — personal longitudinal observation turned
+This is thewildplot's "Dear Data" — personal longitudinal observation turned
 into something universal. Giorgia Lupi tracked her life in hand-drawn postcards.
 This is the same impulse, different tools.
 
@@ -93,14 +93,14 @@ novel. What's being lost as he grows. What's arriving to replace it.
 
 ### Long-form finale — "Tracking Theo: Year One" (or Year Two)
 The full longitudinal story. A complete arc. The piece that lives as the
-definitive thetangle personal story. All data, all observations, the honest
+definitive thewildplot personal story. All data, all observations, the honest
 accounting of one child's early years and one father's attempt to pay attention.
 
 ---
 
 ## Visual Approach
 
-This piece should look different from the data-heavy thetangle stories.
+This piece should look different from the data-heavy thewildplot stories.
 The subject demands warmth, not clinical precision.
 
 **Design principles:**
@@ -145,11 +145,11 @@ This is the thing that makes it literature and not a dashboard.
 ## Data Pipeline
 
 ```
-log.thetangle.io (PWA)
+log.thewildplot.io (PWA)
   → POST /log → Lambda → DynamoDB
   → nightly export Lambda
-  → s3://thetangle-data/personal/theo-*/data.json
-  → thetangle story fetches at build time
+  → s3://thewildplot-data/personal/theo-*/data.json
+  → thewildplot story fetches at build time
 ```
 
 Each tracker exports independently. The story page loads all Theo trackers

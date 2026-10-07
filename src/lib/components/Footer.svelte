@@ -1,6 +1,6 @@
 <footer class="footer">
 	<div class="footer-inner">
-		<span class="wordmark">the tangle</span>
+		<span class="wordmark">the wild plot</span>
 		<span class="muted">Visual essays by Zach Alexander</span>
 	</div>
 </footer>

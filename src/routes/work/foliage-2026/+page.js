@@ -1,7 +1,7 @@
 export async function load({ fetch }) {
 	// TODO: fetch from S3 once the data pipeline is built
 	// Pipeline: PRISM temps + USA-NPN foliage dates → cold-nights regression model → county predictions
-	// Data will live at s3://thetangle-data/foliage-2026/predictions.json
+	// Data will live at s3://thewildplot-data/foliage-2026/predictions.json
 
 	return {
 		year: 2026,

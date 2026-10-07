@@ -1,7 +1,7 @@
 export async function load() {
 	// Solar data computed from astral pipeline (solar_series.py)
 	// TODO: fetch from S3 once the data pipeline is built
-	// Data will live at s3://thetangle-data/sunlight-fall/solar-nyc-2026.json
+	// Data will live at s3://thewildplot-data/sunlight-fall/solar-nyc-2026.json
 
 	return {
 		// Verified values from sunlight-fall.md — use as acceptance tests

@@ -1,6 +1,6 @@
-# thetangle.io — Planning Hub
+# thewildplot.io — Planning Hub
 
-Domain: `thetangle.io` (registered via Route 53)
+Domain: `thewildplot.io` (registered via Route 53)
 
 ---
 
@@ -96,7 +96,7 @@ static/
 Every page gets an `OgMeta.svelte` component:
 ```svelte
 <svelte:head>
-  <title>{title} | The Tangle</title>
+  <title>{title} | The Wild Plot</title>
   <meta name="description" content={description} />
   <meta property="og:title" content={title} />
   <meta property="og:description" content={description} />
@@ -114,10 +114,10 @@ Every page gets an `OgMeta.svelte` component:
 
 ## AWS Amplify Deploy
 
-1. Create GitHub repo `thetangle`
+1. Create GitHub repo `thewildplot`
 2. Connect to AWS Amplify console
 3. Build command: `npm run build`, output dir: `build/`
-4. Configure `thetangle.io` custom domain → auto SSL via ACM
+4. Configure `thewildplot.io` custom domain → auto SSL via ACM
 5. Branch strategy: `main` → production, `dev` → preview URL
 
 ---
@@ -138,7 +138,7 @@ Step index from scroller drives D3 transitions.
 
 ## Phase 1 Build Order
 
-- [ ] Scaffold — `npx sv create thetangle`, install deps, configure adapter-static + mdsvex
+- [ ] Scaffold — `npx sv create thewildplot`, install deps, configure adapter-static + mdsvex
 - [ ] Global layout + Nav + Footer
 - [ ] Home page — hero, featured work cards
 - [ ] Work index + first viz — `/work` grid, one full scrollytelling piece end-to-end
@@ -157,6 +157,6 @@ See IDEAS.md for story/viz concepts.
 
 ## Open Questions
 
-- [ ] Which AWS Lambda data endpoints should thetangle.io consume vs. build new?
+- [ ] Which AWS Lambda data endpoints should thewildplot.io consume vs. build new?
 - [ ] Brand/design direction — dark theme? color palette?
 - [ ] First story/viz piece — what topic?

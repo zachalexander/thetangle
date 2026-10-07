@@ -4,12 +4,12 @@
 	import { stories } from '$lib/stories/index.js';
 </script>
 
-<OgMeta title="The Tangle" description="Visual essays by Zach Alexander." />
+<OgMeta title="The Wild Plot" description="Visual essays by Zach Alexander." />
 
 <main class="home">
 	<div class="container">
 		<header class="site-intro">
-			<h1 class="wordmark">the tangle</h1>
+			<h1 class="wordmark">the wild plot</h1>
 			<p>
 				Visual essays. Each piece is a question worth asking — answered with
 				numbers, maps, and honesty.

@@ -1,7 +1,7 @@
-# thetangle.io — Personal Data Logger
+# thewildplot.io — Personal Data Logger
 
 A flexible micro-logging system for capturing personal data on the go.
-Feeds into thetangle.io stories as original first-party datasets.
+Feeds into thewildplot.io stories as original first-party datasets.
 
 ---
 
@@ -16,10 +16,10 @@ PWA / iOS Shortcut
                                          ↓
                                S3 JSON per tracker
                                          ↓
-                            thetangle.io story (build-time fetch)
+                            thewildplot.io story (build-time fetch)
 ```
 
-Hosted at: `log.thetangle.io`
+Hosted at: `log.thewildplot.io`
 Backend: Lambda + API Gateway + DynamoDB (existing AWS account)
 
 ---
@@ -40,7 +40,7 @@ Backend: Lambda + API Gateway + DynamoDB (existing AWS account)
 ## DynamoDB Schema
 
 ### Single-table design
-Table name: `thetangle-personal-data`
+Table name: `thewildplot-personal-data`
 Partition key: `PK`, Sort key: `SK`
 
 #### Tracker record
@@ -97,7 +97,7 @@ AND SK BETWEEN "ENTRY#2026-07-01" AND "ENTRY#2026-07-31"
 
 ## API Schema
 
-Base URL: `https://api.thetangle.io/log`
+Base URL: `https://api.thewildplot.io/log`
 Auth: API key passed as `x-api-key` header (stored in PWA env at build time)
 
 ### Endpoints
@@ -187,7 +187,7 @@ Response 200:
 ```
 POST /export/{trackerId}
 
-Writes to: s3://thetangle-data/personal/{trackerId}/data.json
+Writes to: s3://thewildplot-data/personal/{trackerId}/data.json
 Response 200: { "s3Key": "personal/toddler-dada/data.json" }
 ```
 
@@ -195,13 +195,13 @@ Response 200: { "s3Key": "personal/toddler-dada/data.json" }
 
 ## PWA Structure
 
-Hosted at `log.thetangle.io`. Built as a simple SvelteKit app.
+Hosted at `log.thewildplot.io`. Built as a simple SvelteKit app.
 Add to iPhone home screen → opens fullscreen like a native app.
 
 ### Manifest (`static/manifest.json`)
 ```json
 {
-  "name": "thetangle log",
+  "name": "thewildplot log",
   "short_name": "log",
   "start_url": "/",
   "display": "standalone",
@@ -248,7 +248,7 @@ src/
 ### Home screen (`+page.svelte`)
 ```
 ┌─────────────────────────────┐
-│ thetangle log          ···  │
+│ thewildplot log          ···  │
 ├──────────────┬──────────────┤
 │      👶      │     ☀️       │
 │  dada count  │ morning mood │
@@ -330,7 +330,7 @@ Body: {
 Response 200:
 {
   "shareToken": "a8f3c2d1-...",
-  "shareUrl": "https://log.thetangle.io/share/a8f3c2d1-..."
+  "shareUrl": "https://log.thewildplot.io/share/a8f3c2d1-..."
 }
 ```
 
@@ -443,7 +443,7 @@ S3 export includes per-participant breakdown alongside the aggregate:
 }
 ```
 
-This lets a thetangle story show both the aggregate trend and the per-participant
+This lets a thewildplot story show both the aggregate trend and the per-participant
 breakdown — e.g. who caught more "dadas" on which days.
 
 ---
@@ -462,14 +462,14 @@ No prompts, no UI — pure one-tap logging.
 
 ---
 
-## Export to thetangle.io
+## Export to thewildplot.io
 
 ### Scheduled export
 EventBridge rule → export Lambda → writes all active trackers to S3 daily at midnight.
 
 ### S3 output format
 ```
-s3://thetangle-data/personal/
+s3://thewildplot-data/personal/
   toddler-dada/
     data.json        ← full history, all entries
     summary.json     ← aggregated (daily counts, rolling averages)
@@ -501,12 +501,12 @@ s3://thetangle-data/personal/
 }
 ```
 
-### Using in a thetangle story
+### Using in a thewildplot story
 ```js
 // src/routes/work/toddler-dada/+page.js
 export async function load({ fetch }) {
   const data = await fetch(
-    'https://thetangle-data.s3.amazonaws.com/personal/toddler-dada/data.json'
+    'https://thewildplot-data.s3.amazonaws.com/personal/toddler-dada/data.json'
   ).then(r => r.json());
   return { data };
 }
@@ -532,7 +532,7 @@ worth publishing as a /writing post when the tool launches.
 ## Open Questions
 
 - [ ] Auth strategy — hardcoded API key in PWA env vars, or something more robust?
-- [ ] PWA separate SvelteKit app at `log.thetangle.io`, or a route within thetangle.io?
+- [ ] PWA separate SvelteKit app at `log.thewildplot.io`, or a route within thewildplot.io?
 - [ ] First tracker to build and test with — toddler dada counter is a good candidate
 - [ ] Export schedule — daily midnight, or trigger manually per story?
 - [ ] Sharing Mode 2 (mirrored/independent copies) — defer until Mode 1 is proven

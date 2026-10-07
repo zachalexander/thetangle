@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sky at 7:30pm · The Last Lit Evening</title>
+  <script src="https://cdn.jsdelivr.net/npm/suncalc@1.9.0/suncalc.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #111;
+      color: #ddd;
+      font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+      padding: 40px 32px;
+      min-height: 100vh;
+    }
+
+    h1 {
+      font-size: 0.6875rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #555;
+      margin-bottom: 24px;
+    }
+
+    /* ── Sky box ──────────────────────────────────── */
+    #sky {
+      width: 100%;
+      max-width: 680px;
+      height: 420px;
+      border-radius: 4px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    #horizon-line {
+      position: absolute;
+      left: 0; right: 0;
+      height: 1px;
+      background: rgba(255,255,255,0.15);
+    }
+
+    #sun {
+      position: absolute;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: rgba(255, 230, 150, 0.9);
+      box-shadow: 0 0 20px 6px rgba(255, 200, 80, 0.5);
+      transform: translate(-50%, -50%);
+      left: 50%;
+      transition: top 0.12s linear, opacity 0.2s;
+    }
+
+    .overlay {
+      position: absolute;
+      bottom: 28px;
+      left: 28px;
+    }
+
+    #date-label {
+      font-size: 1.75rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: #fff;
+      text-shadow: 0 1px 12px rgba(0,0,0,0.5);
+    }
+
+    #alt-label {
+      font-size: 0.8125rem;
+      color: rgba(255,255,255,0.6);
+      margin-top: 4px;
+      text-shadow: 0 1px 6px rgba(0,0,0,0.5);
+      font-variant-numeric: tabular-nums;
+    }
+
+    #status {
+      display: inline-block;
+      margin-top: 10px;
+      font-size: 0.6875rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 4px 9px;
+      border-radius: 2px;
+      background: rgba(0,0,0,0.35);
+    }
+
+    #day-counter {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      font-size: 0.6875rem;
+      color: rgba(255,255,255,0.4);
+      letter-spacing: 0.06em;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* DST flash */
+    #dst-label {
+      position: absolute;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 0.6875rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.5);
+      background: rgba(0,0,0,0.4);
+      padding: 4px 10px;
+      border-radius: 2px;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    /* ── Controls ────────────────────────────────── */
+    #controls {
+      margin-top: 14px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      max-width: 680px;
+    }
+
+    button {
+      background: #222;
+      border: 1px solid #333;
+      color: #ccc;
+      padding: 7px 16px;
+      border-radius: 3px;
+      cursor: pointer;
+      font-size: 0.8125rem;
+      min-width: 72px;
+    }
+    button:hover { background: #2a2a2a; }
+
+    #scrubber {
+      flex: 1;
+      accent-color: #666;
+      cursor: pointer;
+    }
+
+    .ctrl-label {
+      font-size: 0.6875rem;
+      color: #444;
+      white-space: nowrap;
+    }
+
+    input[type=range].speed-input {
+      width: 80px;
+      accent-color: #555;
+    }
+
+    /* ── Strip ───────────────────────────────────── */
+    #strip-section {
+      margin-top: 28px;
+      max-width: 680px;
+    }
+
+    .strip-label {
+      font-size: 0.6875rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #444;
+      margin-bottom: 8px;
+    }
+
+    #strip-wrap {
+      position: relative;
+      cursor: pointer;
+    }
+
+    #strip-canvas {
+      width: 100%;
+      height: 44px;
+      border-radius: 3px;
+      display: block;
+    }
+
+    #strip-needle {
+      position: absolute;
+      top: -3px;
+      bottom: -3px;
+      width: 2px;
+      background: #fff;
+      border-radius: 1px;
+      pointer-events: none;
+      box-shadow: 0 0 4px rgba(0,0,0,0.6);
+    }
+
+    #strip-dates {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 7px;
+      font-size: 0.625rem;
+      color: #444;
+      letter-spacing: 0.04em;
+    }
+
+    /* ── Palette ─────────────────────────────────── */
+    #palette-section {
+      margin-top: 36px;
+      max-width: 680px;
+    }
+
+    #swatches {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 10px;
+    }
+
+    .swatch {
+      width: 40px;
+      height: 40px;
+      border-radius: 3px;
+      cursor: pointer;
+      position: relative;
+      flex-shrink: 0;
+    }
+
+    .swatch-label {
+      display: none;
+      position: absolute;
+      bottom: calc(100% + 4px);
+      left: 50%;
+      transform: translateX(-50%);
+      white-space: nowrap;
+      font-size: 0.5625rem;
+      color: #888;
+      background: #111;
+      padding: 2px 5px;
+      border-radius: 2px;
+    }
+
+    .swatch:hover .swatch-label { display: block; }
+  </style>
+</head>
+<body>
+
+  <h1>Sky at 7:30 pm &nbsp;·&nbsp; New York City &nbsp;·&nbsp; Jun 21 – Dec 1, 2026</h1>
+
+  <div id="sky">
+    <div id="horizon-line"></div>
+    <div id="sun"></div>
+    <div class="overlay">
+      <div id="date-label">Jun 21</div>
+      <div id="alt-label">Sun at bedtime: +9.4°</div>
+      <div id="status">☀ Still lit</div>
+    </div>
+    <div id="day-counter">Day 1 of 163</div>
+    <div id="dst-label">DST ends — clocks fall back</div>
+  </div>
+
+  <div id="controls">
+    <button id="play-btn">Pause</button>
+    <input type="range" id="scrubber" min="0" value="0">
+    <span class="ctrl-label">Speed</span>
+    <input type="range" class="speed-input" id="speed" min="1" max="10" value="5">
+  </div>
+
+  <div id="strip-section">
+    <div class="strip-label">Full progression · click to jump</div>
+    <div id="strip-wrap">
+      <canvas id="strip-canvas" height="44"></canvas>
+      <div id="strip-needle"></div>
+    </div>
+    <div id="strip-dates">
+      <span>Jun 21</span>
+      <span>Jul 15</span>
+      <span>Aug 15</span>
+      <span>Aug 31 ←</span>
+      <span>Oct 1</span>
+      <span>Nov 1</span>
+      <span>Dec 1</span>
+    </div>
+  </div>
+
+  <div id="palette-section">
+    <div class="strip-label">Key sky colors — hover for date</div>
+    <div id="swatches"></div>
+  </div>
+
+<script>
+// ── Data ────────────────────────────────────────────────
+const LAT = 40.71, LON = -74.01;
+const DST_END = new Date(2026, 10, 1); // Nov 1
+
+// Build day list: Jun 21 – Nov 30
+const days = [];
+const cursor = new Date(2026, 5, 21);
+const stop   = new Date(2026, 11, 1);
+
+while (cursor < stop) {
+  const y = cursor.getFullYear(), mo = cursor.getMonth(), d = cursor.getDate();
+  const isDST = cursor < DST_END;
+
+  // Convert 19:30 local → UTC
+  let bedtimeUTC;
+  if (isDST) {
+    // EDT UTC-4: 19:30 + 4h = 23:30 UTC same day
+    bedtimeUTC = new Date(Date.UTC(y, mo, d, 23, 30));
+  } else {
+    // EST UTC-5: 19:30 + 5h = 00:30 UTC next day
+    bedtimeUTC = new Date(Date.UTC(y, mo, d + 1, 0, 30));
+  }
+
+  const pos = SunCalc.getPosition(bedtimeUTC, LAT, LON);
+  const alt = pos.altitude * 180 / Math.PI;
+
+  days.push({
+    label: cursor.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+    alt,
+    isLit: alt > 0,
+    isDSTend: mo === 10 && d === 1, // Nov 1
+    isCrossing: mo === 7 && d === 31, // Aug 31
+  });
+
+  cursor.setDate(cursor.getDate() + 1);
+}
+
+// ── Sky color ramp ───────────────────────────────────────
+// Each stop: [altitude°, topHex, bottomHex]
+// topHex = zenith color, bottomHex = horizon color
+const STOPS = [
+  [ 18, '#8DC8EC', '#FFF0C8'],  // mid-afternoon: light sky blue, pale warm haze
+  [ 12, '#72B8E8', '#FFD890'],  // afternoon: medium blue, warm cream-gold
+  [  8, '#5AA0D8', '#FFBE60'],  // late afternoon: deeper blue, golden horizon
+  [  5, '#4888C0', '#FFA040'],  // golden hour threshold
+  [  3, '#3A70A8', '#F07830'],  // golden hour: warm blue zenith, orange horizon
+  [  1, '#305888', '#E85C20'],  // sun just above horizon: indigo, deep orange
+  [  0, '#2C4878', '#E04818'],  // ── CROSSING ── sunset red-orange glow
+  [ -1, '#263870', '#C83A40'],  // just set — orange-red fading to pink
+  [ -2, '#203068', '#A42E60'],  // pink fade deepening
+  [ -3, '#1A2860', '#823078'],  // mauve rising
+  [ -4, '#152050', '#602070'],  // late civil twilight, deep indigo
+  [ -5, '#111840', '#481868'],  // last blue light fading
+  [ -6, '#0D1430', '#301050'],  // nautical dusk — very dark
+  [ -9, '#090C22', '#1A0C38'],
+  [-12, '#060818', '#100A24'],  // astronomical
+  [-20, '#040510', '#090718'],
+  [-35, '#020308', '#050408'],  // night
+];
+
+function lerpHex(a, b, t) {
+  const p = h => [parseInt(h.slice(1,3),16), parseInt(h.slice(3,5),16), parseInt(h.slice(5,7),16)];
+  const [ar,ag,ab] = p(a), [br,bg,bb] = p(b);
+  const r = v => Math.round(Math.max(0, Math.min(255, v))).toString(16).padStart(2,'0');
+  return `#${r(ar+(br-ar)*t)}${r(ag+(bg-ag)*t)}${r(ab+(bb-ab)*t)}`;
+}
+
+function skyColors(alt) {
+  const c = Math.max(STOPS[STOPS.length-1][0], Math.min(STOPS[0][0], alt));
+  for (let i = 0; i < STOPS.length - 1; i++) {
+    const [h1, ht, hb] = STOPS[i], [h2, lt, lb] = STOPS[i+1];
+    if (c <= h1 && c >= h2) {
+      const t = (c - h2) / (h1 - h2);
+      return { top: lerpHex(lt, ht, t), bot: lerpHex(lb, hb, t) };
+    }
+  }
+  const last = STOPS[STOPS.length-1];
+  return { top: last[1], bot: last[2] };
+}
+
+// Precompute
+const frames = days.map(d => ({ ...d, ...skyColors(d.alt) }));
+
+// ── Draw strip ───────────────────────────────────────────
+const canvas = document.getElementById('strip-canvas');
+const HORIZON_Y = 300; // px from top, inside the 420px sky box
+
+function drawStrip() {
+  const W = canvas.parentElement.offsetWidth;
+  canvas.width = W;
+  const ctx = canvas.getContext('2d');
+  const n = frames.length;
+  const colW = W / n;
+
+  frames.forEach((f, i) => {
+    const x = i * colW;
+    const grad = ctx.createLinearGradient(0, 0, 0, 44);
+    grad.addColorStop(0, f.top);
+    grad.addColorStop(1, f.bot);
+    ctx.fillStyle = grad;
+    ctx.fillRect(Math.floor(x), 0, Math.ceil(colW) + 1, 44);
+
+    // Mark crossing (Aug 31 = day index 71)
+    if (f.isCrossing) {
+      ctx.fillStyle = 'rgba(255,255,255,0.5)';
+      ctx.fillRect(Math.floor(x), 0, 1, 44);
+    }
+    // Mark DST end
+    if (f.isDSTend) {
+      ctx.fillStyle = 'rgba(255,255,255,0.25)';
+      ctx.fillRect(Math.floor(x), 0, 1, 44);
+    }
+  });
+}
+
+// ── Render frame ─────────────────────────────────────────
+const skyEl       = document.getElementById('sky');
+const sunEl       = document.getElementById('sun');
+const horizonEl   = document.getElementById('horizon-line');
+const dateEl      = document.getElementById('date-label');
+const altEl       = document.getElementById('alt-label');
+const statusEl    = document.getElementById('status');
+const counterEl   = document.getElementById('day-counter');
+const dstLabel    = document.getElementById('dst-label');
+const needle      = document.getElementById('strip-needle');
+const scrubber    = document.getElementById('scrubber');
+
+const SKY_H = 420;
+const HORIZON_PX = SKY_H * 0.78; // horizon at 78% down
+const ALT_SCALE  = 14;           // px per degree above horizon
+
+horizonEl.style.top = HORIZON_PX + 'px';
+
+let prevWasDSTend = false;
+
+function renderFrame(i) {
+  const f = frames[i];
+
+  // Sky gradient
+  skyEl.style.background = `linear-gradient(to bottom, ${f.top} 0%, ${f.bot} 100%)`;
+
+  // Sun position
+  const sunTop = HORIZON_PX - (f.alt * ALT_SCALE);
+  if (f.alt > -2) {
+    const opacity = Math.min(1, (f.alt + 2) / 3);
+    sunEl.style.opacity = opacity;
+    sunEl.style.top = sunTop + 'px';
+  } else {
+    sunEl.style.opacity = 0;
+  }
+
+  // Text
+  dateEl.textContent = f.label;
+  altEl.textContent  = `Sun at 7:30pm: ${f.alt >= 0 ? '+' : ''}${f.alt.toFixed(1)}°`;
+
+  if (f.isLit) {
+    statusEl.textContent = '☀  Still lit';
+    statusEl.style.color = '#FFD888';
+  } else {
+    statusEl.textContent = '●  Dark at bedtime';
+    statusEl.style.color = '#8090C0';
+  }
+
+  counterEl.textContent = `Day ${i+1} of ${frames.length}`;
+
+  // DST flash
+  if (f.isDSTend && !prevWasDSTend) {
+    dstLabel.style.opacity = 1;
+    setTimeout(() => { dstLabel.style.opacity = 0; }, 2000);
+  }
+  prevWasDSTend = f.isDSTend;
+
+  // Scrubber + needle
+  scrubber.value = i;
+  const pct = i / (frames.length - 1);
+  needle.style.left = (pct * 100) + '%';
+}
+
+// ── Animation ────────────────────────────────────────────
+let current = 0;
+let playing = true;
+let timer = null;
+
+const playBtn   = document.getElementById('play-btn');
+const speedEl   = document.getElementById('speed');
+
+scrubber.max = frames.length - 1;
+
+function intervalMs() {
+  // speed 1-10 → 400ms-40ms
+  const v = parseInt(speedEl.value);
+  return Math.round(400 - (v - 1) * (360 / 9));
+}
+
+function tick() {
+  current = (current + 1) % frames.length;
+  renderFrame(current);
+}
+
+function startTimer() {
+  clearInterval(timer);
+  timer = setInterval(tick, intervalMs());
+}
+
+function stopTimer() {
+  clearInterval(timer);
+  timer = null;
+}
+
+playBtn.addEventListener('click', () => {
+  playing = !playing;
+  playBtn.textContent = playing ? 'Pause' : 'Play';
+  playing ? startTimer() : stopTimer();
+});
+
+speedEl.addEventListener('input', () => {
+  if (playing) startTimer();
+});
+
+scrubber.addEventListener('input', () => {
+  current = parseInt(scrubber.value);
+  renderFrame(current);
+});
+
+// Click strip to jump
+document.getElementById('strip-wrap').addEventListener('click', e => {
+  const rect = canvas.getBoundingClientRect();
+  const pct  = (e.clientX - rect.left) / rect.width;
+  current = Math.round(pct * (frames.length - 1));
+  renderFrame(current);
+});
+
+// ── Key swatches ─────────────────────────────────────────
+// Pick ~16 representative days
+const keyIndices = [0, 10, 20, 30, 40, 50, 60, 70, 71, 80, 91, 100, 110, 122, 132, 142, 152, 162];
+const swatchesEl = document.getElementById('swatches');
+
+keyIndices.forEach(i => {
+  if (i >= frames.length) return;
+  const f = frames[i];
+  const avg = lerpHex(f.top, f.bot, 0.4); // weighted toward top
+  const el = document.createElement('div');
+  el.className = 'swatch';
+  el.style.background = `linear-gradient(to bottom, ${f.top}, ${f.bot})`;
+  el.title = f.label;
+  el.innerHTML = `<span class="swatch-label">${f.label}</span>`;
+  el.addEventListener('click', () => { current = i; renderFrame(i); });
+  swatchesEl.appendChild(el);
+});
+
+// ── Init ─────────────────────────────────────────────────
+window.addEventListener('resize', drawStrip);
+drawStrip();
+renderFrame(0);
+startTimer();
+</script>
+</body>
+</html>

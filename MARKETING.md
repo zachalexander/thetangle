@@ -1,22 +1,22 @@
-# thetangle.io — Marketing & Distribution
+# thewildplot.io — Marketing & Distribution
 
 ---
 
 ## The Pudding Playbook
 
-The Pudding (pudding.cool) is the closest model for what thetangle.io is building.
+The Pudding (pudding.cool) is the closest model for what thewildplot.io is building.
 Founded 2017 by Matt Daniels. ~500k monthly visitors, Peabody Award in their first year.
-Here's how they actually grew — and how it maps to thetangle.
+Here's how they actually grew — and how it maps to thewildplot.
 
-| Pudding lesson | thetangle application |
+| Pudding lesson | thewildplot application |
 |---|---|
 | Pick topics people already argue about | Foliage timing is something New Englanders are deeply passionate about — they already have opinions |
 | Data channels existing passion into something arguable | "Your county peaks later than you think" is a debate starter, not a lecture |
 | "Spoonful of sugar" — fun surface, serious depth | Casual readers share because it's cool; serious readers share because it matters |
 | Time releases to cultural moments | Publish foliage story when the first cold weekend hits and everyone's already talking |
 | Engage community publicly when they push back | If Reddit debates your model, engage and update it — those people become advocates |
-| Quality over frequency (enabled by a sustainable model) | One great story every 6–8 weeks. thetangle is a passion project — no pressure to publish constantly |
-| The B2B studio funded their editorial work | No equivalent needed here — but protecting time for thetangle is the same discipline |
+| Quality over frequency (enabled by a sustainable model) | One great story every 6–8 weeks. thewildplot is a passion project — no pressure to publish constantly |
+| The B2B studio funded their editorial work | No equivalent needed here — but protecting time for thewildplot is the same discipline |
 
 **Origin story worth knowing:** Daniels' 2014 rapper vocabulary piece went viral on Reddit
 because hip-hop fans immediately demanded "where's Aesop Rock?" — he added him, Aesop
@@ -101,7 +101,7 @@ Google is beginning to surface dataset-driven content in search results.
 - Add `<link rel="canonical">` on all `/share/*` routes pointing back to the main story URL
 
 **Cross-linking**
-- Bidirectional links between thetangle.io and birdland-metrics.com builds domain authority for both
+- Bidirectional links between thewildplot.io and birdland-metrics.com builds domain authority for both
 
 **Seasonal timing**
 - Publish data-driven seasonal stories ahead of the search spike
