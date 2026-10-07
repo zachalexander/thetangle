@@ -36,7 +36,7 @@
 	title="The Last Lit Evening"
 	description="At 40.7°N, a child with a 7:30pm bedtime gets 143 lit evenings a year. The last one falls on August 31."
 	ogImage="/og/sunlight-fall.png"
-	url="https://thetangle.io/work/sunlight-fall"
+	url="https://thewildplot.com/work/sunlight-fall"
 />
 
 <article class="story">

@@ -49,7 +49,7 @@
 		<div class="cell">
 			<div class="upcoming">
 				<span class="eyebrow">Coming next</span>
-				<p class="upcoming-title">More threads are being untangled.</p>
+				<p class="upcoming-title">More stories are taking shape.</p>
 			</div>
 		</div>
 	{/if}

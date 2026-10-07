@@ -40,7 +40,7 @@
 	title="When Will the Leaves Turn?"
 	description="A data-driven forecast of peak fall foliage across the Northeast — by county, by week."
 	ogImage="/og/foliage-2026.png"
-	url="https://thetangle.io/work/foliage-2026"
+	url="https://thewildplot.com/work/foliage-2026"
 />
 
 <article class="story" style:--story-color={story.color} style:--story-ink={story.ink}>

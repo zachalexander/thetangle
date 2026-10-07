@@ -3,7 +3,7 @@
 		title = 'The Wild Plot',
 		description = 'Visual essays.',
 		ogImage = '/og/default.png',
-		url = 'https://thewildplot.io'
+		url = 'https://thewildplot.com'
 	} = $props();
 
 	const fullTitle = $derived(title === 'The Wild Plot' ? title : `${title} | The Wild Plot`);
