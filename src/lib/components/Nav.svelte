@@ -6,9 +6,8 @@
 	<div class="nav-inner">
 		<a href="/" class="wordmark">the wild plot</a>
 		<div class="nav-links">
-			<a href="/work" class:active={$page.url.pathname.startsWith('/work')}>Work</a>
-			<a href="/writing" class:active={$page.url.pathname.startsWith('/writing')}>Writing</a>
-			<a href="/about" class:active={$page.url.pathname === '/about'}>About</a>
+			<a href="/visual-essays" class:active={$page.url.pathname.startsWith('/visual-essays')}>Visual Essays</a>
+<a href="/about" class:active={$page.url.pathname === '/about'}>About</a>
 		</div>
 	</div>
 </nav>

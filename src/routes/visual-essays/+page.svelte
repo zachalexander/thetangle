@@ -4,12 +4,12 @@
 	import { stories } from '$lib/stories/index.js';
 </script>
 
-<OgMeta title="Work" description="Visual essays by Zach Alexander." />
+<OgMeta title="Visual Essays" description="Visual essays by Zach Alexander." />
 
 <main class="work-index">
 	<div class="container">
 		<header class="page-header">
-			<h1>Work</h1>
+			<h1>Visual Essays</h1>
 			<p>{stories.length} {stories.length === 1 ? 'story' : 'stories'}</p>
 		</header>
 

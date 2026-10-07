@@ -12,7 +12,7 @@
 	const inProgress = $derived(story.status && story.status !== 'published');
 </script>
 
-<a href="/work/{story.slug}" class="tile" class:large style:--tile-bg={bg} style:--tile-ink={ink}>
+<a href="/visual-essays/{story.slug}" class="tile" class:large style:--tile-bg={bg} style:--tile-ink={ink}>
 	<div class="tile-top">
 		{#if story.tags?.length}
 			<span class="eyebrow">{story.tags[0]}</span>
