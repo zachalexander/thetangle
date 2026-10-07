@@ -4,7 +4,7 @@
 
 <nav class="nav" aria-label="Main">
 	<div class="nav-inner">
-		<a href="/" class="wordmark">the tangle</a>
+		<a href="/" class="wordmark">the wild plot</a>
 		<div class="nav-links">
 			<a href="/work" class:active={$page.url.pathname.startsWith('/work')}>Work</a>
 			<a href="/writing" class:active={$page.url.pathname.startsWith('/writing')}>Writing</a>
