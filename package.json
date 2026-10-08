@@ -9,12 +9,15 @@
 		"preview": "vite preview",
 		"prepare": "svelte-kit sync || echo ''",
 		"lint": "prettier --check .",
-		"format": "prettier --write ."
+		"format": "prettier --write .",
+		"generate:daylight": "node scripts/generate-county-daylight.js",
+		"merge:error": "node scripts/merge-county-error.js"
 	},
 	"devDependencies": {
 		"@sveltejs/adapter-static": "^3.0.10",
 		"@sveltejs/kit": "^2.63.0",
 		"@sveltejs/vite-plugin-svelte": "^7.1.2",
+		"geo-tz": "^8.1.9",
 		"prettier": "^3.8.3",
 		"prettier-plugin-svelte": "^4.1.0",
 		"svelte": "^5.56.1",
@@ -24,6 +27,7 @@
 		"d3": "^7.9.0",
 		"layercake": "^10.0.3",
 		"mdsvex": "^0.12.8",
-		"suncalc": "^2.1.1"
+		"suncalc": "^2.1.1",
+		"topojson-client": "^3.1.0"
 	}
 }

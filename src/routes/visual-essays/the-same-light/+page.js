@@ -46,6 +46,10 @@ const comparison = {
 };
 
 /** @type {import('./$types').PageLoad} */
-export function load() {
-	return { cities, clockRules, comparison };
+export async function load({ fetch }) {
+	const [countyDaylight, countyGeo] = await Promise.all([
+		fetch('/data/county-daylight.json').then((r) => r.json()),
+		fetch('/data/counties-10m.json').then((r) => r.json())
+	]);
+	return { cities, clockRules, comparison, countyDaylight, countyGeo };
 }

@@ -1,6 +1,7 @@
 <script>
 	import OgMeta from '$lib/components/OgMeta.svelte';
 	import Scroller from '$lib/components/Scroller.svelte';
+	import CountyMap from '$lib/components/CountyMap.svelte';
 
 	let { data } = $props();
 
@@ -14,16 +15,16 @@
 
 	const cardText = $derived([
 		'', // cold-open — no text
-		`Bangor, Maine and Indianapolis get the same amount of daylight in a year — about 4,450 hours each. Indianapolis gets ${data.comparison.eveningPctMore}% more of it after 5\u00a0pm.`,
-		'Both cities are on Eastern time. Here\u2019s a harder one: Boston or Detroit — who gets more evening light?',
+		`Bangor, Maine and Indianapolis get the same amount of daylight in a year — about 4,450 hours each. Indianapolis gets ${data.comparison.eveningPctMore}% more sunlight after 5\u00a0pm.`,
+		'Both cities are on Eastern time. Here\u2019s a harder one: Boston or Detroit — who gets more sunlight after 5\u00a0pm?',
 		'This is one city\u2019s year of daylight — every day from January to December, sunrise to sunset.',
 		'Now a second city. Same total area — the band is the same height overall. But the shape is different, and it sits at a different place on the clock.',
-		'Shade everything after 5\u00a0pm. That\u2019s your evening light. Indianapolis: 910 hours. Bangor: 572.',
+		'Shade everything after 5\u00a0pm. That\u2019s your evening sunlight — hours of sun still up past five. Indianapolis: 910 hours. Bangor: 572.',
 		'They\u2019re on the same clock, but Indianapolis sits at the western edge of Eastern time. The sun runs behind the clock there — later sunrises, later sunsets.',
 		'And Bangor is five degrees further north. Same total light, but a bigger swing — longer summers, shorter winters. In December, both forces stack.',
 		'December 9. Bangor: sunset at 3:53\u00a0pm. Indianapolis: 5:19\u00a0pm. An hour and a half apart. Same time zone.',
 		'What if we changed the clocks? Same city, three rules. The band slides — but the total never changes.',
-		'Here\u2019s the whole country. Evening light by county — striped by time-zone lines. Arizona, as always, opts out.',
+		'Here\u2019s the whole country. Evening sunlight by county — striped by time-zone lines. Arizona, as always, opts out.',
 		'The light never went anywhere. The Earth tilted it across the year. We drew lines on a map and called it time.'
 	]);
 </script>
@@ -88,13 +89,13 @@
 							<span class="big-number-unit">hours/year</span>
 						</div>
 					</div>
-					<p class="viz-stat">But Indianapolis gets <strong>59% more</strong> of it after 5&nbsp;pm</p>
+					<p class="viz-stat">But Indianapolis gets <strong>59% more</strong> sunlight after 5&nbsp;pm</p>
 				</div>
 
 				<!-- 2: guess — two buttons -->
 				<div class="viz-panel" class:active={index === 2}>
 					<div class="guess-prompt">
-						<p class="viz-caption">Who gets more evening light?</p>
+						<p class="viz-caption">Who gets more sunlight after 5&nbsp;pm?</p>
 						<div class="guess-buttons">
 							<div class="guess-btn">Boston</div>
 							<div class="guess-btn">Detroit</div>
@@ -319,32 +320,11 @@
 
 				<!-- 10: map — US choropleth -->
 				<div class="viz-panel" class:active={index === 10}>
-					<svg viewBox="0 0 480 320" class="viz-svg">
-						<text x="240" y="24" text-anchor="middle" class="viz-title">Evening Light Across the US</text>
-						<!-- Simplified US with striped zones -->
-						<path
-							d="M40,100 L100,80 L180,85 L240,70 L300,75 L360,90 L420,85 L450,100
-							   L455,140 L440,180 L420,200 L380,220 L340,230 L300,225 L260,235
-							   L220,240 L180,235 L140,230 L100,220 L60,200 L45,160 Z"
-							fill="var(--surface)" stroke="var(--ink)" stroke-width="2"
-						/>
-						<!-- West-of-zone shading (more evening light) -->
-						<rect x="350" y="90" width="40" height="150" fill="var(--ochre)" opacity="0.4" clip-path="url(#us-clip)"/>
-						<rect x="245" y="85" width="40" height="160" fill="var(--ochre)" opacity="0.4"/>
-						<rect x="150" y="90" width="40" height="150" fill="var(--ochre)" opacity="0.4"/>
-						<!-- East-of-zone shading (less evening light) -->
-						<rect x="390" y="90" width="65" height="140" fill="var(--night)" opacity="0.2"/>
-						<rect x="285" y="85" width="65" height="150" fill="var(--night)" opacity="0.2"/>
-						<rect x="55" y="100" width="95" height="130" fill="var(--night)" opacity="0.2"/>
-						<!-- Legend -->
-						<rect x="140" y="268" width="20" height="12" fill="var(--ochre)" opacity="0.5"/>
-						<text x="166" y="279" class="viz-tick">More evening</text>
-						<rect x="280" y="268" width="20" height="12" fill="var(--night)" opacity="0.3"/>
-						<text x="306" y="279" class="viz-tick">Less evening</text>
-						<!-- Arizona callout -->
-						<circle cx="180" cy="195" r="3" fill="none" stroke="var(--ink)" stroke-width="1.5"/>
-						<text x="180" y="215" text-anchor="middle" class="viz-dot-label">AZ (no DST)</text>
-					</svg>
+					<CountyMap
+						countyDaylight={data.countyDaylight}
+						countyGeo={data.countyGeo}
+						active={index === 10}
+					/>
 				</div>
 
 				<!-- 11: close — two windows revisited, both lit -->
@@ -384,7 +364,7 @@
 	<!-- Calculator placeholder -->
 	<section class="calculator-section">
 		<div class="section-inner">
-			<h2>Find Your Evening Light</h2>
+			<h2>Find Your Evening Sunlight</h2>
 			<p class="section-dek">Pick a city and an evening threshold to see how your daylight splits.</p>
 			<div class="calculator-placeholder">
 				<span class="viz-label">Interactive calculator: city selector + evening threshold slider</span>
@@ -405,7 +385,7 @@
 					tables (within 1 minute).
 				</li>
 				<li>
-					"Evening hours" = daylight hours after 5:00 pm local clock time.
+					"Evening hours" = hours of sunlight (sunrise to sunset) after 5:00 pm local clock time.
 					"Morning hours" = daylight hours before 9:00 am.
 				</li>
 				<li>
@@ -483,13 +463,15 @@
 		align-items: center;
 		justify-content: center;
 		flex-direction: column;
-		padding: 32px;
+		padding: 0;
 		opacity: 0;
+		pointer-events: none;
 		transition: opacity 0.4s ease;
 	}
 
 	.viz-panel.active {
 		opacity: 1;
+		pointer-events: auto;
 	}
 
 	.viz-svg {
@@ -646,15 +628,16 @@
 
 	/* Scroll cards */
 	.cards-spacer {
-		height: 50vh;
+		height: 70vh;
 	}
 
 	.step {
-		min-height: 40vh;
+		min-height: 65vh;
 		display: flex;
 		align-items: center;
 		justify-content: center;
 		padding: 0 var(--gutter, 16px);
+		pointer-events: none;
 	}
 
 	.scroll-card {
@@ -733,6 +716,32 @@
 	.sources-section a {
 		text-decoration: underline;
 		text-underline-offset: 2px;
+	}
+
+	@media (max-width: 767px) {
+		.step {
+			min-height: 85vh;
+		}
+	}
+
+	/* Desktop: push cards to the left so viz is unobstructed */
+	@media (min-width: 768px) {
+		.viz-panel {
+			padding: 32px;
+		}
+
+		.step {
+			justify-content: flex-start;
+			padding-left: 5vw;
+		}
+
+		.scroll-card {
+			max-width: 320px;
+		}
+
+		.viz-svg {
+			max-width: 680px;
+		}
 	}
 
 	@media (prefers-reduced-motion: reduce) {
