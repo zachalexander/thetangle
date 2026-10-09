@@ -54,25 +54,17 @@
 	<Scroller bind:index bind:progress>
 		{#snippet background()}
 			<div class="viz-container">
-				<!-- 0: cold-open — two windows -->
+				<!-- 0: cold-open — character video -->
 				<div class="viz-panel" class:active={index === 0}>
-					<svg viewBox="0 0 480 320" class="viz-svg">
-						<!-- Left window (dark) -->
-						<rect x="60" y="60" width="140" height="180" rx="4" fill="none" stroke="var(--ink)" stroke-width="2"/>
-						<line x1="130" y1="60" x2="130" y2="240" stroke="var(--ink)" stroke-width="2"/>
-						<line x1="60" y1="150" x2="200" y2="150" stroke="var(--ink)" stroke-width="2"/>
-						<rect x="62" y="62" width="136" height="176" rx="2" fill="var(--night)" opacity="0.7"/>
-						<!-- Right window (lit) -->
-						<rect x="280" y="60" width="140" height="180" rx="4" fill="none" stroke="var(--ink)" stroke-width="2"/>
-						<line x1="350" y1="60" x2="350" y2="240" stroke="var(--ink)" stroke-width="2"/>
-						<line x1="280" y1="150" x2="420" y2="150" stroke="var(--ink)" stroke-width="2"/>
-						<rect x="282" y="62" width="136" height="176" rx="2" fill="var(--ochre)" opacity="0.35"/>
-						<!-- Clock -->
-						<circle cx="240" cy="280" r="16" fill="none" stroke="var(--ink)" stroke-width="2"/>
-						<line x1="240" y1="280" x2="240" y2="268" stroke="var(--ink)" stroke-width="2"/>
-						<line x1="240" y1="280" x2="248" y2="280" stroke="var(--ink)" stroke-width="2"/>
-						<text x="240" y="310" text-anchor="middle" class="viz-caption">5:00 pm</text>
-					</svg>
+					<!-- svelte-ignore a11y_media_has_caption -->
+					<video
+						class="cold-open-video"
+						src="/video/cold-open.mp4"
+						autoplay
+						loop
+						muted
+						playsinline
+					></video>
 				</div>
 
 				<!-- 1: hook — two big numbers -->
@@ -492,6 +484,14 @@
 		width: 100%;
 		max-width: 520px;
 		height: auto;
+	}
+
+	.cold-open-video {
+		width: 100%;
+		max-width: 480px;
+		height: auto;
+		border-radius: var(--radius-tile, 8px);
+		background: var(--bg, #fffdf8);
 	}
 
 	/* SVG typography */
