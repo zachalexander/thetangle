@@ -332,7 +332,7 @@
 				<path
 					d={cp.d}
 					fill={cp.fill}
-					stroke="rgba(34,33,31,0.15)"
+					stroke="rgba(0,0,0,0.5)"
 					stroke-width="0.5"
 				/>
 				{#if cp.hatched}
@@ -442,7 +442,7 @@
 						<path
 							d={cp.d}
 							fill={cp.fill}
-							stroke="rgba(34,33,31,0.25)"
+							stroke="rgba(0,0,0,0.5)"
 							stroke-width="0.8"
 							onmouseenter={(e) => handleCountyEnter(e, cp)}
 							onmousemove={handleCountyMove}
