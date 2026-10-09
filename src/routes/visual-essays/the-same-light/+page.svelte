@@ -50,23 +50,32 @@
 		</div>
 	</header>
 
+	<!-- Cold open -->
+	<section class="cold-open">
+		<div class="speech-bubble">
+			{#each ['Hey', 'Juno,', 'where', 'are', 'you', 'right', 'now?'] as word, i}
+				<span class="speech-word" style="animation-delay: {0.3 + i * 0.15}s">{word}</span>{' '}
+			{/each}
+			<svg class="speech-tail" width="24" height="18" viewBox="0 -2 24 20" fill="none" overflow="hidden">
+				<path d="M0 -2 L0 0 C16 8, 14 14, 10 18 C16 12, 20 6, 24 0 L24 -2 Z" fill="var(--bg, #fffdf8)" stroke="none"/>
+				<path d="M0 0 C16 8, 14 14, 10 18 C16 12, 20 6, 24 0" fill="none" stroke="var(--ink)" stroke-width="2" stroke-linecap="butt"/>
+			</svg>
+		</div>
+		<!-- svelte-ignore a11y_media_has_caption -->
+		<video
+			class="cold-open-video"
+			src="/video/cold-open.mp4"
+			autoplay
+			loop
+			muted
+			playsinline
+		></video>
+	</section>
+
 	<!-- Scrollytelling -->
 	<Scroller bind:index bind:progress>
 		{#snippet background()}
 			<div class="viz-container">
-				<!-- 0: cold-open — character video -->
-				<div class="viz-panel" class:active={index === 0}>
-					<!-- svelte-ignore a11y_media_has_caption -->
-					<video
-						class="cold-open-video"
-						src="/video/cold-open.mp4"
-						autoplay
-						loop
-						muted
-						playsinline
-					></video>
-				</div>
-
 				<!-- 1: hook — two big numbers -->
 				<div class="viz-panel" class:active={index === 1}>
 					<div class="big-numbers">
@@ -469,7 +478,7 @@
 		align-items: center;
 		justify-content: center;
 		flex-direction: column;
-		padding: 0;
+		padding: 4px 0;
 		opacity: 0;
 		pointer-events: none;
 		transition: opacity 0.4s ease;
@@ -486,12 +495,61 @@
 		height: auto;
 	}
 
+	.cold-open {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		padding: 48px var(--gutter, 16px) 0;
+	}
+
 	.cold-open-video {
 		width: 100%;
-		max-width: 480px;
+		max-width: 640px;
 		height: auto;
 		border-radius: var(--radius-tile, 8px);
 		background: var(--bg, #fffdf8);
+	}
+
+	.speech-bubble {
+		position: relative;
+		background: var(--bg, #fffdf8);
+		border: 2px solid var(--ink);
+		border-radius: 12px;
+		padding: 6px 12px;
+		margin-top: -16px;
+		margin-bottom: -16px;
+		align-self: flex-start;
+		margin-left: 6%;
+		z-index: 1;
+		font-family: var(--font-body);
+		font-size: 0.85rem;
+		font-weight: 600;
+		color: var(--ink);
+		max-width: 140px;
+	}
+
+	.speech-tail {
+		position: absolute;
+		bottom: -16px;
+		left: 50%;
+		transform: translateX(-50%);
+	}
+
+	.speech-word {
+		display: inline;
+		opacity: 0;
+		animation: word-in 0.3s ease forwards;
+	}
+
+	@keyframes word-in {
+		from {
+			opacity: 0;
+			transform: translateY(4px);
+		}
+		to {
+			opacity: 1;
+			transform: translateY(0);
+		}
 	}
 
 	/* SVG typography */
@@ -757,7 +815,7 @@
 	/* Desktop: push cards to the left so viz is unobstructed */
 	@media (min-width: 768px) {
 		.viz-panel {
-			padding: 32px;
+			padding: 4px 32px;
 		}
 
 		.step {
@@ -769,6 +827,10 @@
 			max-width: 320px;
 		}
 
+		.speech-bubble {
+			margin-left: 15%;
+		}
+
 		.viz-svg {
 			max-width: 680px;
 		}
@@ -778,6 +840,10 @@
 		.viz-panel,
 		.scroll-card {
 			transition: none;
+		}
+		.speech-word {
+			animation: none;
+			opacity: 1;
 		}
 	}
 </style>
