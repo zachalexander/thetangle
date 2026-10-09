@@ -56,6 +56,11 @@
 			<div class="viz-container">
 				<!-- 0: cold-open — character video -->
 				<div class="viz-panel" class:active={index === 0}>
+					<div class="speech-bubble">
+						{#each ['Hey', 'Juno,', 'where', 'are', 'you', 'right', 'now?'] as word, i}
+							<span class="speech-word" style="animation-delay: {0.3 + i * 0.15}s">{word}</span>{' '}
+						{/each}
+					</div>
 					<!-- svelte-ignore a11y_media_has_caption -->
 					<video
 						class="cold-open-video"
@@ -494,6 +499,50 @@
 		background: var(--bg, #fffdf8);
 	}
 
+	.speech-bubble {
+		position: relative;
+		background: var(--bg, #fffdf8);
+		border: 2px solid var(--ink);
+		border-radius: 16px;
+		padding: 10px 16px;
+		margin-bottom: 16px;
+		font-family: var(--font-body);
+		font-size: 1rem;
+		font-weight: 600;
+		color: var(--ink);
+		max-width: 280px;
+	}
+
+	.speech-bubble::after {
+		content: '';
+		position: absolute;
+		bottom: -10px;
+		left: 50%;
+		transform: translateX(-50%) rotate(45deg);
+		width: 16px;
+		height: 16px;
+		background: var(--bg, #fffdf8);
+		border-right: 2px solid var(--ink);
+		border-bottom: 2px solid var(--ink);
+	}
+
+	.speech-word {
+		display: inline;
+		opacity: 0;
+		animation: word-in 0.3s ease forwards;
+	}
+
+	@keyframes word-in {
+		from {
+			opacity: 0;
+			transform: translateY(4px);
+		}
+		to {
+			opacity: 1;
+			transform: translateY(0);
+		}
+	}
+
 	/* SVG typography */
 	.viz-svg :global(.viz-title) {
 		font-family: var(--font-display);
@@ -778,6 +827,10 @@
 		.viz-panel,
 		.scroll-card {
 			transition: none;
+		}
+		.speech-word {
+			animation: none;
+			opacity: 1;
 		}
 	}
 </style>
