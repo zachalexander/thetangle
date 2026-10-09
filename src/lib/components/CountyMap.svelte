@@ -12,6 +12,7 @@
 	let zoomBehavior = $state(null);
 	let showZoomHint = $state(true);
 	let isTouchDevice = $state(false);
+	let selectedZone = $state('All');
 
 	// Build FIPS→data lookup + percentile ranks
 	const dataByFips = $derived.by(() => {
@@ -27,6 +28,15 @@
 		return map;
 	});
 
+	// FIPS → zone lookup (used for filtering + timezone mesh)
+	const zoneByFips = $derived.by(() => {
+		const map = new Map();
+		for (const d of countyDaylight) {
+			map.set(d.fips, d.zone);
+		}
+		return map;
+	});
+
 	// Color scale: night → ochre, 6 discrete steps
 	const NIGHT = '#23304a';
 	const OCHRE = '#d9a441';
@@ -34,25 +44,58 @@
 	const colorRange = d3.quantize(d3.interpolateRgb(NIGHT, OCHRE), colorSteps);
 	const colorScale = d3.scaleQuantize().domain([0.33, 0.65]).range(colorRange);
 
-	// Projection and path — computed once from geo data
+	// Projection and path — responds to selectedZone for filtering
+	const mainZones = ['Eastern', 'Central', 'Mountain', 'Pacific'];
 	const mapState = $derived.by(() => {
 		if (!countyGeo) return null;
 
-		const width = 960;
-		const height = 640;
-		const padding = 40;
+		const showAll = selectedZone === 'All';
+		const width = showAll ? 960 : 1200;
+		const height = showAll ? 640 : 1400;
+		const padding = showAll ? 40 : 16;
 
-		const counties = topojson.feature(countyGeo, countyGeo.objects.counties);
-		const stateMesh = topojson.mesh(countyGeo, countyGeo.objects.states, (a, b) => a !== b);
-		const nationMesh = topojson.mesh(countyGeo, countyGeo.objects.nation);
+		const allCounties = topojson.feature(countyGeo, countyGeo.objects.counties);
+
+		// Filter features when a single zone is selected
+		const filteredFeatures = showAll
+			? allCounties.features
+			: allCounties.features.filter((f) => {
+					const fips = String(f.id).padStart(5, '0');
+					return zoneByFips.get(fips) === selectedZone;
+				});
+		const fitCollection = showAll
+			? allCounties
+			: { type: 'FeatureCollection', features: filteredFeatures };
+
+		// When filtered, find which states contain counties in this zone
+		const statesInZone = new Set();
+		if (!showAll) {
+			for (const f of filteredFeatures) {
+				statesInZone.add(String(f.id).padStart(5, '0').slice(0, 2));
+			}
+		}
+
+		// State mesh: when filtered, only boundaries between states that both have counties in the zone
+		const stateMesh = showAll
+			? topojson.mesh(countyGeo, countyGeo.objects.states, (a, b) => a !== b)
+			: topojson.mesh(countyGeo, countyGeo.objects.states, (a, b) => {
+					const sa = String(a.id).padStart(2, '0');
+					const sb = String(b.id).padStart(2, '0');
+					return a !== b && statesInZone.has(sa) && statesInZone.has(sb);
+				});
+
+		// Nation mesh only used in "All" view
+		const nationMesh = showAll
+			? topojson.mesh(countyGeo, countyGeo.objects.nation)
+			: null;
 
 		const projection = d3.geoAlbersUsa().fitExtent(
 			[[padding, padding], [width - padding, height - padding]],
-			counties
+			fitCollection
 		);
 		const path = d3.geoPath(projection);
 
-		const countyPaths = counties.features.map((f) => {
+		const countyPaths = filteredFeatures.map((f) => {
 			const fips = String(f.id).padStart(5, '0');
 			const d = dataByFips.get(fips);
 			return {
@@ -64,14 +107,7 @@
 			};
 		});
 
-		// Build FIPS → zone lookup for timezone mesh
-		const zoneByFips = new Map();
-		for (const d of countyDaylight) {
-			zoneByFips.set(d.fips, d.zone);
-		}
-
 		// Timezone boundaries: mesh of edges where adjacent counties have different zones
-		const mainZones = ['Eastern', 'Central', 'Mountain', 'Pacific'];
 		const tzMesh = topojson.mesh(
 			countyGeo,
 			countyGeo.objects.counties,
@@ -90,13 +126,15 @@
 			{ label: 'Eastern',  x: 762, y: 115, angle: -5 }
 		];
 
-		return { counties, stateMesh, nationMesh, path, projection, countyPaths, tzMesh, tzLabels, width, height };
+		return { counties: allCounties, stateMesh, nationMesh, path, projection, countyPaths, tzMesh, tzLabels, width, height, showAll };
 	});
 
 	let hoveredFips = $state(null);
+	let tappedFips = $state(null);
+	const activeFips = $derived(isTouchDevice ? tappedFips : hoveredFips);
 
 	function handleCountyEnter(e, countyData) {
-		if (!countyData?.data) return;
+		if (isTouchDevice || !countyData?.data) return;
 		const rect = container.getBoundingClientRect();
 		hoveredFips = countyData.fips;
 		tooltip = {
@@ -108,7 +146,7 @@
 	}
 
 	function handleCountyMove(e) {
-		if (!tooltip.visible) return;
+		if (isTouchDevice || !tooltip.visible) return;
 		const rect = container.getBoundingClientRect();
 		tooltip = {
 			...tooltip,
@@ -118,6 +156,7 @@
 	}
 
 	function handleCountyLeave() {
+		if (isTouchDevice) return;
 		hoveredFips = null;
 		tooltip = { ...tooltip, visible: false };
 	}
@@ -126,18 +165,16 @@
 		if (!countyData?.data) return;
 		e.preventDefault();
 		// Toggle: tap same county again to dismiss
-		if (hoveredFips === countyData.fips && tooltip.visible) {
-			hoveredFips = null;
+		if (tappedFips === countyData.fips && tooltip.visible) {
+			tappedFips = null;
 			tooltip = { ...tooltip, visible: false };
 			return;
 		}
-		const touch = e.touches[0];
-		const rect = container.getBoundingClientRect();
-		hoveredFips = countyData.fips;
+		tappedFips = countyData.fips;
 		tooltip = {
 			visible: true,
-			x: touch.clientX - rect.left,
-			y: touch.clientY - rect.top,
+			x: 0,
+			y: 0,
 			county: countyData.data
 		};
 	}
@@ -146,7 +183,7 @@
 		// Dismiss tooltip when tapping SVG background (non-county area) on touch devices
 		if (!isTouchDevice) return;
 		if (e.target.closest('.counties')) return;
-		hoveredFips = null;
+		tappedFips = null;
 		tooltip = { ...tooltip, visible: false };
 	}
 
@@ -195,14 +232,21 @@
 		d3.select(svgEl).transition().duration(300).call(zoomBehavior.transform, d3.zoomIdentity);
 	}
 
-	onMount(() => {
-		isTouchDevice = window.matchMedia('(pointer: coarse)').matches;
-		if (!svgEl) return;
+	// Reset zoom when timezone filter changes
+	$effect(() => {
+		selectedZone; // track
+		if (svgEl && zoomBehavior) {
+			d3.select(svgEl).call(zoomBehavior.transform, d3.zoomIdentity);
+			isZoomed = false;
+		}
+	});
 
+	// Svelte action: sets up zoom once the SVG element mounts
+	function initZoom(node) {
 		const zoom = d3.zoom()
 			.scaleExtent([1, 8])
 			.on('zoom', (event) => {
-				d3.select(svgEl).select('.zoom-group').attr('transform', event.transform);
+				d3.select(node).select('.zoom-group').attr('transform', event.transform);
 				const zoomed = event.transform.k > 1.05;
 				if (zoomed !== isZoomed) isZoomed = zoomed;
 				if (zoomed && showZoomHint) showZoomHint = false;
@@ -218,7 +262,7 @@
 			return true;
 		});
 
-		const svg = d3.select(svgEl);
+		const svg = d3.select(node);
 		svg.call(zoom);
 		zoomBehavior = zoom;
 
@@ -228,10 +272,16 @@
 		};
 		svg.on('mousedown.hint', dismissHint);
 
-		return () => {
-			svg.on('.zoom', null);
-			svg.on('.hint', null);
+		return {
+			destroy() {
+				svg.on('.zoom', null);
+				svg.on('.hint', null);
+			}
 		};
+	}
+
+	onMount(() => {
+		isTouchDevice = window.matchMedia('(pointer: coarse)').matches;
 	});
 </script>
 
@@ -242,110 +292,130 @@
 	aria-label="Choropleth map of the United States showing evening sunlight share by county. Western edges of time zones receive more sunlight after 5 pm."
 >
 	{#if mapState}
-		<!-- svelte-ignore a11y_click_events_have_key_events -->
-		<svg
-			bind:this={svgEl}
-			viewBox="0 0 {mapState.width} {mapState.height}"
-			class="map-svg"
-			onclick={handleSvgClick}
-		>
-			<defs>
-				<pattern id="crosshatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-					<line x1="0" y1="0" x2="0" y2="6" stroke="var(--paper, #f6f0e2)" stroke-width="1.5" opacity="0.55" />
-				</pattern>
-			</defs>
-			<g class="zoom-group">
-				<g class="counties">
-					{#each mapState.countyPaths as cp (cp.fips)}
-						<!-- svelte-ignore a11y_no_static_element_interactions -->
-						<path
-							d={cp.d}
-							fill={cp.fill}
-							stroke={hoveredFips === cp.fips ? 'var(--ink)' : 'rgba(34,33,31,0.12)'}
-							stroke-width={hoveredFips === cp.fips ? 1.5 : 0.8}
-							onmouseenter={(e) => handleCountyEnter(e, cp)}
-							onmousemove={handleCountyMove}
-							onmouseleave={handleCountyLeave}
-							ontouchstart={(e) => handleCountyTouch(e, cp)}
-						/>
-						{#if cp.hatched}
-							<path
-								d={cp.d}
-								fill="url(#crosshatch)"
-								stroke="none"
-								pointer-events="none"
-							/>
-						{/if}
-					{/each}
-				</g>
-
-				<path
-					d={mapState.path(mapState.stateMesh)}
-					fill="none"
-					stroke="var(--ink)"
-					stroke-width="0.8"
-					stroke-linejoin="round"
-				/>
-
-				<path
-					d={mapState.path(mapState.nationMesh)}
-					fill="none"
-					stroke="var(--ink)"
-					stroke-width="1.2"
-					stroke-linejoin="round"
-				/>
-
-				<!-- Timezone boundaries (county-level) -->
-				<path
-					d={mapState.path(mapState.tzMesh)}
-					fill="none"
-					stroke="rgba(246,240,226,0.9)"
-					stroke-width="4"
-					stroke-linejoin="round"
-				/>
-				<path
-					d={mapState.path(mapState.tzMesh)}
-					fill="none"
-					stroke="var(--ink)"
-					stroke-width="1.2"
-					stroke-linejoin="round"
-					opacity="0.7"
-				/>
-
-				</g>
-
-			<!-- Timezone labels — outside zoom group, just above northern border -->
-			<g pointer-events="none">
-				{#each mapState.tzLabels as tz}
-					<text
-						x={tz.x}
-						y={tz.y}
-						text-anchor="middle"
-						transform="rotate({tz.angle},{tz.x},{tz.y})"
-						class="tz-label"
-					>{tz.label}</text>
-				{/each}
-			</g>
-		</svg>
-
-		<!-- Zoom controls -->
-		<div class="zoom-controls">
-			<button class="zoom-btn" onclick={handleZoomIn} aria-label="Zoom in">+</button>
-			<button class="zoom-btn" onclick={handleZoomOut} aria-label="Zoom out">&minus;</button>
-			{#if isZoomed}
-				<button class="zoom-btn reset-btn" onclick={handleReset} aria-label="Reset zoom">Reset</button>
-			{/if}
+		<!-- Timezone filter toggle -->
+		<div class="tz-filter">
+			{#each ['All', ...mainZones] as zone}
+				<button
+					class="tz-filter-btn"
+					class:active={selectedZone === zone}
+					onclick={() => selectedZone = zone}
+				>{zone}</button>
+			{/each}
 		</div>
 
-		<!-- Zoom hint -->
-		{#if showZoomHint && active}
-			<div class="zoom-hint">
-				<span class="zoom-hint-text">
-					<span class="zoom-hint-desktop">Scroll to zoom (Ctrl + wheel) or use +/&minus; buttons</span>
-					<span class="zoom-hint-mobile">Pinch to zoom or use +/&minus; buttons</span>
-				</span>
+		<div class="map-viewport">
+			<!-- svelte-ignore a11y_click_events_have_key_events -->
+			<svg
+				bind:this={svgEl}
+				use:initZoom
+				viewBox="0 0 {mapState.width} {mapState.height}"
+				class="map-svg"
+				onclick={handleSvgClick}
+			>
+				<defs>
+					<pattern id="crosshatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+						<line x1="0" y1="0" x2="0" y2="6" stroke="var(--paper, #f6f0e2)" stroke-width="1.5" opacity="0.55" />
+					</pattern>
+				</defs>
+				<g class="zoom-group">
+					<g class="counties">
+						{#each mapState.countyPaths as cp (cp.fips)}
+							<!-- svelte-ignore a11y_no_static_element_interactions -->
+							<path
+								d={cp.d}
+								fill={cp.fill}
+								stroke={activeFips === cp.fips ? 'var(--ink)' : 'rgba(34,33,31,0.12)'}
+								stroke-width={activeFips === cp.fips ? (mapState.showAll ? 1.5 : 4) : 0.8}
+								onmouseenter={(e) => handleCountyEnter(e, cp)}
+								onmousemove={handleCountyMove}
+								onmouseleave={handleCountyLeave}
+								ontouchstart={(e) => handleCountyTouch(e, cp)}
+							/>
+							{#if cp.hatched}
+								<path
+									d={cp.d}
+									fill="url(#crosshatch)"
+									stroke="none"
+									pointer-events="none"
+								/>
+							{/if}
+						{/each}
+					</g>
+
+					<path
+						d={mapState.path(mapState.stateMesh)}
+						fill="none"
+						stroke="var(--ink)"
+						stroke-width="0.8"
+						stroke-linejoin="round"
+					/>
+
+					{#if mapState.nationMesh}
+						<path
+							d={mapState.path(mapState.nationMesh)}
+							fill="none"
+							stroke="var(--ink)"
+							stroke-width="1.2"
+							stroke-linejoin="round"
+						/>
+					{/if}
+
+					<!-- Timezone boundaries (county-level) — hidden when filtering to one zone -->
+					{#if mapState.showAll}
+						<path
+							d={mapState.path(mapState.tzMesh)}
+							fill="none"
+							stroke="rgba(246,240,226,0.9)"
+							stroke-width="4"
+							stroke-linejoin="round"
+						/>
+						<path
+							d={mapState.path(mapState.tzMesh)}
+							fill="none"
+							stroke="var(--ink)"
+							stroke-width="1.2"
+							stroke-linejoin="round"
+							opacity="0.7"
+						/>
+					{/if}
+
+					</g>
+
+				<!-- Timezone labels — outside zoom group, hidden when filtering to one zone -->
+				{#if mapState.showAll}
+					<g pointer-events="none">
+						{#each mapState.tzLabels as tz}
+							<text
+								x={tz.x}
+								y={tz.y}
+								text-anchor="middle"
+								transform="rotate({tz.angle},{tz.x},{tz.y})"
+								class="tz-label"
+							>{tz.label}</text>
+						{/each}
+					</g>
+				{/if}
+			</svg>
+
+			<!-- Zoom controls -->
+			<div class="zoom-controls">
+				<button class="zoom-btn" onclick={handleZoomIn} aria-label="Zoom in">+</button>
+				<button class="zoom-btn" onclick={handleZoomOut} aria-label="Zoom out">&minus;</button>
+				{#if isZoomed}
+					<button class="zoom-btn reset-btn" onclick={handleReset} aria-label="Reset zoom">Reset</button>
+				{/if}
 			</div>
-		{/if}
+
+			<!-- Zoom hint -->
+			{#if showZoomHint && active}
+				<div class="zoom-hint">
+					<span class="zoom-hint-text">
+						<span class="zoom-hint-desktop">Scroll to zoom (Ctrl + wheel) or use +/&minus; buttons</span>
+						<span class="zoom-hint-mobile">Pinch to zoom or use +/&minus; buttons</span>
+					</span>
+				</div>
+			{/if}
+		</div>
 
 		<!-- Legend -->
 		<div class="legend">
@@ -436,6 +506,41 @@
 		touch-action: pan-y;
 	}
 
+	.map-viewport {
+		position: relative;
+	}
+
+	/* Timezone filter toggle */
+	.tz-filter {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 6px;
+		justify-content: center;
+		margin-bottom: 8px;
+	}
+
+	.tz-filter-btn {
+		font-family: var(--font-body);
+		font-size: 0.75rem;
+		font-weight: 600;
+		padding: 4px 12px;
+		border: 1.5px solid var(--ink, #22211f);
+		border-radius: 999px;
+		background: transparent;
+		color: var(--ink, #22211f);
+		cursor: pointer;
+		line-height: 1.3;
+	}
+
+	.tz-filter-btn:hover {
+		background: rgba(34, 33, 31, 0.06);
+	}
+
+	.tz-filter-btn.active {
+		background: var(--ink, #22211f);
+		color: var(--paper, #f6f0e2);
+	}
+
 	.map-svg {
 		width: 100%;
 		height: auto;
@@ -461,7 +566,7 @@
 		text-transform: uppercase;
 	}
 
-	/* Zoom controls */
+	/* Zoom controls — anchored to .map-viewport, not county-map */
 	.zoom-controls {
 		position: absolute;
 		top: 8px;
@@ -473,22 +578,23 @@
 	}
 
 	.zoom-btn {
-		width: 32px;
-		height: 32px;
+		width: 40px;
+		height: 40px;
 		display: flex;
 		align-items: center;
 		justify-content: center;
 		background: var(--bg, #fff);
 		border: 1.5px solid var(--border, #ddd);
-		border-radius: 6px;
+		border-radius: 8px;
 		font-family: var(--font-body);
-		font-size: 1.125rem;
+		font-size: 1.25rem;
 		font-weight: 700;
 		color: var(--text);
 		cursor: pointer;
 		pointer-events: auto;
 		box-shadow: 0 1px 4px rgba(0,0,0,0.1);
 		line-height: 1;
+		-webkit-tap-highlight-color: transparent;
 	}
 
 	.zoom-btn:hover {
