@@ -723,14 +723,16 @@
 			min-height: 85vh;
 		}
 
-		/* Push the map and close step cards to the top so they don't block the interactive map */
-		.step[data-step="map"],
+		/* Hide scroll card on the map step so it doesn't block the interactive map */
+		.step[data-step="map"] .scroll-card {
+			display: none;
+		}
+
 		.step[data-step="close"] {
 			align-items: flex-start;
 			padding-top: 8px;
 		}
 
-		.step[data-step="map"] .scroll-card,
 		.step[data-step="close"] .scroll-card {
 			font-size: 0.875rem;
 			padding: 12px 16px;

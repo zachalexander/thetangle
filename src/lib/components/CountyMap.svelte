@@ -8,8 +8,12 @@
 	let container = $state();
 	let svgEl = $state();
 	let tooltip = $state({ visible: false, x: 0, y: 0, county: null });
-	let isZoomed = $state(false);
-	let zoomBehavior = $state(null);
+	let zoomK = $state(1);
+	let panX = $state(0);
+	let panY = $state(0);
+	let isPanning = $state(false);
+	let panStart = { x: 0, y: 0, panX: 0, panY: 0 };
+	const isZoomed = $derived(zoomK > 1.05);
 	let showZoomHint = $state(true);
 	let isTouchDevice = $state(false);
 	let selectedZone = $state('All');
@@ -75,7 +79,7 @@
 			}
 		}
 
-		// State mesh: when filtered, only boundaries between states that both have counties in the zone
+		// State mesh: when filtered, only boundaries between states in the zone
 		const stateMesh = showAll
 			? topojson.mesh(countyGeo, countyGeo.objects.states, (a, b) => a !== b)
 			: topojson.mesh(countyGeo, countyGeo.objects.states, (a, b) => {
@@ -107,16 +111,31 @@
 			};
 		});
 
-		// Timezone boundaries: mesh of edges where adjacent counties have different zones
-		const tzMesh = topojson.mesh(
-			countyGeo,
-			countyGeo.objects.counties,
-			(a, b) => {
-				const za = zoneByFips.get(String(a.id).padStart(5, '0'));
-				const zb = zoneByFips.get(String(b.id).padStart(5, '0'));
-				return za && zb && za !== zb && mainZones.indexOf(za) !== -1 && mainZones.indexOf(zb) !== -1;
-			}
-		);
+		// Timezone boundaries
+		// All view: edges between counties in different main timezones
+		// Filtered view: merged outline of the entire zone (coastlines + borders + tz edges)
+		const tzMesh = showAll
+			? topojson.mesh(
+				countyGeo,
+				countyGeo.objects.counties,
+				(a, b) => {
+					const za = zoneByFips.get(String(a.id).padStart(5, '0'));
+					const zb = zoneByFips.get(String(b.id).padStart(5, '0'));
+					return za && zb && za !== zb && mainZones.indexOf(za) !== -1 && mainZones.indexOf(zb) !== -1;
+				}
+			)
+			: null;
+
+		// Merged zone outline for filtered view
+		const zoneMerged = showAll
+			? null
+			: topojson.merge(
+				countyGeo,
+				countyGeo.objects.counties.geometries.filter((g) => {
+					const fips = String(g.id).padStart(5, '0');
+					return zoneByFips.get(fips) === selectedZone;
+				})
+			);
 
 		// Label positions: centered in each zone, snug above northern border, rotated to match border angle
 		const tzLabels = [
@@ -126,7 +145,7 @@
 			{ label: 'Eastern',  x: 762, y: 115, angle: -5 }
 		];
 
-		return { counties: allCounties, stateMesh, nationMesh, path, projection, countyPaths, tzMesh, tzLabels, width, height, showAll };
+		return { counties: allCounties, stateMesh, nationMesh, path, projection, countyPaths, tzMesh, zoneMerged, tzLabels, width, height, showAll };
 	});
 
 	let hoveredFips = $state(null);
@@ -218,67 +237,68 @@
 	});
 
 	function handleZoomIn() {
-		if (!svgEl || !zoomBehavior) return;
-		d3.select(svgEl).transition().duration(300).call(zoomBehavior.scaleBy, 1.5);
+		zoomK = Math.min(8, zoomK * 1.5);
+		if (showZoomHint) showZoomHint = false;
 	}
 
 	function handleZoomOut() {
-		if (!svgEl || !zoomBehavior) return;
-		d3.select(svgEl).transition().duration(300).call(zoomBehavior.scaleBy, 1 / 1.5);
+		const newK = Math.max(1, zoomK / 1.5);
+		zoomK = newK;
+		if (newK <= 1.05) { panX = 0; panY = 0; }
+		else { clampPan(); }
 	}
 
 	function handleReset() {
-		if (!svgEl || !zoomBehavior) return;
-		d3.select(svgEl).transition().duration(300).call(zoomBehavior.transform, d3.zoomIdentity);
+		zoomK = 1;
+		panX = 0;
+		panY = 0;
+	}
+
+	// Clamp pan so the map doesn't drift off-screen
+	function clampPan() {
+		if (!mapState) return;
+		const maxPan = (zoomK - 1) * Math.max(mapState.width, mapState.height) / 2;
+		panX = Math.max(-maxPan, Math.min(maxPan, panX));
+		panY = Math.max(-maxPan, Math.min(maxPan, panY));
+	}
+
+	// Pan handlers — pointer events work for both mouse and touch
+	function handlePanStart(e) {
+		if (!isZoomed) return;
+		// Only single-finger/left-button drag
+		if (e.pointerType === 'touch' && e.isPrimary === false) return;
+		isPanning = true;
+		panStart = { x: e.clientX, y: e.clientY, panX, panY };
+		svgEl?.setPointerCapture(e.pointerId);
+		e.preventDefault();
+	}
+
+	function handlePanMove(e) {
+		if (!isPanning) return;
+		if (!svgEl || !mapState) return;
+		// Convert pixel delta to SVG units
+		const rect = svgEl.getBoundingClientRect();
+		const scaleX = mapState.width / rect.width;
+		const scaleY = mapState.height / rect.height;
+		panX = panStart.panX + (e.clientX - panStart.x) * scaleX / zoomK;
+		panY = panStart.panY + (e.clientY - panStart.y) * scaleY / zoomK;
+		clampPan();
+		e.preventDefault();
+	}
+
+	function handlePanEnd(e) {
+		if (!isPanning) return;
+		isPanning = false;
+		svgEl?.releasePointerCapture(e.pointerId);
 	}
 
 	// Reset zoom when timezone filter changes
 	$effect(() => {
 		selectedZone; // track
-		if (svgEl && zoomBehavior) {
-			d3.select(svgEl).call(zoomBehavior.transform, d3.zoomIdentity);
-			isZoomed = false;
-		}
+		zoomK = 1;
+		panX = 0;
+		panY = 0;
 	});
-
-	// Svelte action: sets up zoom once the SVG element mounts
-	function initZoom(node) {
-		const zoom = d3.zoom()
-			.scaleExtent([1, 8])
-			.on('zoom', (event) => {
-				d3.select(node).select('.zoom-group').attr('transform', event.transform);
-				const zoomed = event.transform.k > 1.05;
-				if (zoomed !== isZoomed) isZoomed = zoomed;
-				if (zoomed && showZoomHint) showZoomHint = false;
-			});
-
-		zoom.filter((event) => {
-			if (event.type === 'touchstart' || event.type === 'touchmove') {
-				return event.touches.length >= 2;
-			}
-			if (event.type === 'wheel') {
-				return event.ctrlKey || event.metaKey;
-			}
-			return true;
-		});
-
-		const svg = d3.select(node);
-		svg.call(zoom);
-		zoomBehavior = zoom;
-
-		const dismissHint = () => {
-			showZoomHint = false;
-			svg.on('mousedown.hint', null);
-		};
-		svg.on('mousedown.hint', dismissHint);
-
-		return {
-			destroy() {
-				svg.on('.zoom', null);
-				svg.on('.hint', null);
-			}
-		};
-	}
 
 	onMount(() => {
 		isTouchDevice = window.matchMedia('(pointer: coarse)').matches;
@@ -292,9 +312,19 @@
 	aria-label="Choropleth map of the United States showing evening sunlight share by county. Western edges of time zones receive more sunlight after 5 pm."
 >
 	{#if mapState}
-		<!-- Timezone filter toggle -->
+		<!-- Overview toggle -->
+		<button
+			class="tz-overview-btn"
+			class:active={selectedZone === 'All'}
+			onclick={() => selectedZone = 'All'}
+		>All time zones</button>
+
+		<!-- Narrative prompt -->
+		<p class="tz-narrative">Counties on the western edge of each time zone get far more sunlight after 5 pm. Pick a time zone below to explore the data county by county.</p>
+
+		<!-- Timezone filter pills -->
 		<div class="tz-filter">
-			{#each ['All', ...mainZones] as zone}
+			{#each mainZones as zone}
 				<button
 					class="tz-filter-btn"
 					class:active={selectedZone === zone}
@@ -307,17 +337,23 @@
 			<!-- svelte-ignore a11y_click_events_have_key_events -->
 			<svg
 				bind:this={svgEl}
-				use:initZoom
 				viewBox="0 0 {mapState.width} {mapState.height}"
 				class="map-svg"
+				class:panning={isPanning}
+				class:pannable={isZoomed}
+				class:overview={isTouchDevice && mapState.showAll}
 				onclick={handleSvgClick}
+				onpointerdown={handlePanStart}
+				onpointermove={handlePanMove}
+				onpointerup={handlePanEnd}
+				onpointercancel={handlePanEnd}
 			>
 				<defs>
 					<pattern id="crosshatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
 						<line x1="0" y1="0" x2="0" y2="6" stroke="var(--paper, #f6f0e2)" stroke-width="1.5" opacity="0.55" />
 					</pattern>
 				</defs>
-				<g class="zoom-group">
+				<g class="zoom-group" transform="translate({mapState.width / 2 * (1 - zoomK) + panX * zoomK},{mapState.height / 2 * (1 - zoomK) + panY * zoomK}) scale({zoomK})">
 					<g class="counties">
 						{#each mapState.countyPaths as cp (cp.fips)}
 							<!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -329,7 +365,7 @@
 								onmouseenter={(e) => handleCountyEnter(e, cp)}
 								onmousemove={handleCountyMove}
 								onmouseleave={handleCountyLeave}
-								ontouchstart={(e) => handleCountyTouch(e, cp)}
+								ontouchstart={(e) => { if (!isTouchDevice || !mapState.showAll) handleCountyTouch(e, cp); }}
 							/>
 							{#if cp.hatched}
 								<path
@@ -342,15 +378,15 @@
 						{/each}
 					</g>
 
-					<path
-						d={mapState.path(mapState.stateMesh)}
-						fill="none"
-						stroke="var(--ink)"
-						stroke-width="0.8"
-						stroke-linejoin="round"
-					/>
+					{#if mapState.showAll}
+						<path
+							d={mapState.path(mapState.stateMesh)}
+							fill="none"
+							stroke="var(--ink)"
+							stroke-width="0.8"
+							stroke-linejoin="round"
+						/>
 
-					{#if mapState.nationMesh}
 						<path
 							d={mapState.path(mapState.nationMesh)}
 							fill="none"
@@ -360,22 +396,33 @@
 						/>
 					{/if}
 
-					<!-- Timezone boundaries (county-level) — hidden when filtering to one zone -->
-					{#if mapState.showAll}
+					<!-- Timezone boundaries -->
+					{#if mapState.tzMesh}
 						<path
 							d={mapState.path(mapState.tzMesh)}
 							fill="none"
 							stroke="rgba(246,240,226,0.9)"
-							stroke-width="4"
+							stroke-width="5"
 							stroke-linejoin="round"
+							stroke-linecap="round"
 						/>
 						<path
 							d={mapState.path(mapState.tzMesh)}
 							fill="none"
 							stroke="var(--ink)"
-							stroke-width="1.2"
+							stroke-width="2"
 							stroke-linejoin="round"
-							opacity="0.7"
+							stroke-linecap="round"
+						/>
+					{/if}
+					{#if mapState.zoneMerged}
+						<path
+							d={mapState.path(mapState.zoneMerged)}
+							fill="none"
+							stroke="var(--ink)"
+							stroke-width="3"
+							stroke-linejoin="round"
+							stroke-linecap="round"
 						/>
 					{/if}
 
@@ -397,21 +444,22 @@
 				{/if}
 			</svg>
 
-			<!-- Zoom controls -->
-			<div class="zoom-controls">
-				<button class="zoom-btn" onclick={handleZoomIn} aria-label="Zoom in">+</button>
-				<button class="zoom-btn" onclick={handleZoomOut} aria-label="Zoom out">&minus;</button>
-				{#if isZoomed}
-					<button class="zoom-btn reset-btn" onclick={handleReset} aria-label="Reset zoom">Reset</button>
-				{/if}
-			</div>
+			<!-- Zoom controls — hidden on mobile overview -->
+			{#if !(isTouchDevice && mapState.showAll)}
+				<div class="zoom-controls">
+					<button class="zoom-btn" onclick={handleZoomIn} aria-label="Zoom in">+</button>
+					<button class="zoom-btn" onclick={handleZoomOut} aria-label="Zoom out">&minus;</button>
+					{#if isZoomed}
+						<button class="zoom-btn reset-btn" onclick={handleReset} aria-label="Reset zoom">Reset</button>
+					{/if}
+				</div>
+			{/if}
 
-			<!-- Zoom hint -->
-			{#if showZoomHint && active}
+			<!-- Zoom hint (desktop only) -->
+			{#if showZoomHint && active && !isTouchDevice}
 				<div class="zoom-hint">
 					<span class="zoom-hint-text">
-						<span class="zoom-hint-desktop">Scroll to zoom (Ctrl + wheel) or use +/&minus; buttons</span>
-						<span class="zoom-hint-mobile">Pinch to zoom or use +/&minus; buttons</span>
+						Scroll to zoom (Ctrl + wheel) or use +/&minus; buttons
 					</span>
 				</div>
 			{/if}
@@ -510,13 +558,49 @@
 		position: relative;
 	}
 
-	/* Timezone filter toggle */
+	/* Overview button */
+	.tz-overview-btn {
+		display: block;
+		margin: 0 auto 12px;
+		font-family: var(--font-body);
+		font-size: 0.75rem;
+		font-weight: 600;
+		padding: 4px 14px;
+		border: 1.5px solid var(--ink, #22211f);
+		border-radius: 999px;
+		background: transparent;
+		color: var(--ink, #22211f);
+		cursor: pointer;
+		line-height: 1.3;
+	}
+
+	.tz-overview-btn:hover {
+		background: rgba(34, 33, 31, 0.06);
+	}
+
+	.tz-overview-btn.active {
+		background: var(--ink, #22211f);
+		color: var(--paper, #f6f0e2);
+	}
+
+	/* Narrative prompt */
+	.tz-narrative {
+		text-align: center;
+		font-family: var(--font-body);
+		font-size: 0.8125rem;
+		line-height: 1.5;
+		color: var(--text-muted);
+		margin: 0 auto 14px;
+		max-width: 420px;
+	}
+
+	/* Timezone filter pills */
 	.tz-filter {
 		display: flex;
 		flex-wrap: wrap;
 		gap: 6px;
 		justify-content: center;
-		margin-bottom: 8px;
+		margin-bottom: 14px;
 	}
 
 	.tz-filter-btn {
@@ -541,14 +625,22 @@
 		color: var(--paper, #f6f0e2);
 	}
 
+	.map-svg.overview {
+		pointer-events: none;
+	}
+
 	.map-svg {
 		width: 100%;
 		height: auto;
 		display: block;
-		cursor: grab;
 	}
 
-	.map-svg:active {
+	.map-svg.pannable {
+		cursor: grab;
+		touch-action: none;
+	}
+
+	.map-svg.panning {
 		cursor: grabbing;
 	}
 
