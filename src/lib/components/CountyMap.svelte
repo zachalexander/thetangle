@@ -3,7 +3,7 @@
 	import * as d3 from 'd3';
 	import * as topojson from 'topojson-client';
 
-	let { countyDaylight, countyGeo, active = false, mode = 'overview' } = $props();
+	let { countyDaylight, countyGeo, cities = [], active = false, mode = 'overview' } = $props();
 
 	let container = $state();
 	let svgEl = $state();
@@ -153,6 +153,19 @@
 		return { stateMesh, path, projection, countyPaths, zoneMerged, width, height };
 	});
 
+	// Project cities for the current explore-mode zone
+	const projectedCities = $derived.by(() => {
+		if (!mapState?.projection) return [];
+		return cities
+			.filter((c) => c.timezone.startsWith(selectedZone))
+			.map((c) => {
+				const pt = mapState.projection([c.lng, c.lat]);
+				if (!pt) return null;
+				return { ...c, x: pt[0], y: pt[1] };
+			})
+			.filter(Boolean);
+	});
+
 	let hoveredFips = $state(null);
 	let tappedFips = $state(null);
 	const activeFips = $derived(isTouchDevice ? tappedFips : hoveredFips);
@@ -297,6 +310,44 @@
 		svgEl?.releasePointerCapture(e.pointerId);
 	}
 
+	// Pinch-to-zoom for touch devices
+	let isPinching = $state(false);
+	let pinchStartDist = 0;
+	let pinchStartZoom = 1;
+
+	function getTouchDist(touches) {
+		const dx = touches[0].clientX - touches[1].clientX;
+		const dy = touches[0].clientY - touches[1].clientY;
+		return Math.hypot(dx, dy);
+	}
+
+	function handleTouchStart(e) {
+		if (e.touches.length === 2) {
+			isPinching = true;
+			isPanning = false;
+			pinchStartDist = getTouchDist(e.touches);
+			pinchStartZoom = zoomK;
+			e.preventDefault();
+		}
+	}
+
+	function handleTouchMove(e) {
+		if (!isPinching || e.touches.length !== 2) return;
+		const dist = getTouchDist(e.touches);
+		const scale = dist / pinchStartDist;
+		zoomK = Math.max(1, Math.min(8, pinchStartZoom * scale));
+		if (zoomK <= 1.05) { panX = 0; panY = 0; }
+		else { clampPan(); }
+		e.preventDefault();
+	}
+
+	function handleTouchEnd(e) {
+		if (!isPinching) return;
+		if (e.touches.length < 2) {
+			isPinching = false;
+		}
+	}
+
 	// Reset zoom when timezone filter changes
 	$effect(() => {
 		selectedZone; // track
@@ -340,7 +391,7 @@
 				{/if}
 			{/each}
 		</g>
-		<path d={overviewState.path(overviewState.stateMesh)} fill="none" stroke="var(--ink)" stroke-width="0.8" stroke-linejoin="round" />
+		<path d={overviewState.path(overviewState.stateMesh)} fill="none" stroke="var(--ink)" stroke-width="1.2" stroke-linejoin="round" />
 		<path d={overviewState.path(overviewState.nationMesh)} fill="none" stroke="var(--ink)" stroke-width="1.2" stroke-linejoin="round" />
 		<path d={overviewState.path(overviewState.tzMesh)} fill="none" stroke="rgba(246,240,226,0.9)" stroke-width="5" stroke-linejoin="round" stroke-linecap="round" />
 		<path d={overviewState.path(overviewState.tzMesh)} fill="none" stroke="var(--ink)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" />
@@ -404,7 +455,7 @@
 							<span class="info-bar-muted">Earliest sunset: {tooltip.county.earliestSunset}</span>
 						{/if}
 						{#if tooltip.county.errorPct >= 3}
-							<span class="info-bar-muted">&pm;{tooltip.county.errorPct}% — large county</span>
+							<span class="info-bar-error">&pm;{tooltip.county.errorPct}% estimate, this county covers a wide area</span>
 						{/if}
 					</div>
 				</div>
@@ -424,16 +475,26 @@
 			class="map-svg"
 			class:panning={isPanning}
 			class:pannable={isZoomed}
+			class:pinching={isPinching}
 			onclick={handleSvgClick}
 			onpointerdown={handlePanStart}
 			onpointermove={handlePanMove}
 			onpointerup={handlePanEnd}
 			onpointercancel={handlePanEnd}
+			ontouchstart={handleTouchStart}
+			ontouchmove={handleTouchMove}
+			ontouchend={handleTouchEnd}
+			ontouchcancel={handleTouchEnd}
 		>
 			<defs>
 				<pattern id="crosshatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
 					<line x1="0" y1="0" x2="0" y2="6" stroke="var(--paper, #f6f0e2)" stroke-width="1.5" opacity="0.55" />
 				</pattern>
+				{#if mapState.zoneMerged}
+					<clipPath id="zone-clip">
+						<path d={mapState.path(mapState.zoneMerged)} />
+					</clipPath>
+				{/if}
 			</defs>
 			<g class="zoom-group" transform="translate({mapState.width / 2 * (1 - zoomK) + panX * zoomK},{mapState.height / 2 * (1 - zoomK) + panY * zoomK}) scale({zoomK})">
 				<g class="counties">
@@ -460,6 +521,17 @@
 					{/each}
 				</g>
 
+				<!-- State lines (clipped to timezone boundary) -->
+				<path
+					d={mapState.path(mapState.stateMesh)}
+					fill="none"
+					stroke="var(--ink)"
+					stroke-width="1.5"
+					stroke-linejoin="round"
+					pointer-events="none"
+					clip-path="url(#zone-clip)"
+				/>
+
 				<!-- Active county highlight -->
 				{#if activeFips}
 					{@const activeCounty = mapState.countyPaths.find(cp => cp.fips === activeFips)}
@@ -485,6 +557,14 @@
 						stroke-linecap="round"
 					/>
 				{/if}
+
+				<!-- City markers -->
+				{#each projectedCities as c (c.city)}
+					<g class="city-marker">
+						<circle cx={c.x} cy={c.y} r="5" fill="var(--text-muted, #5f5c55)" stroke="var(--paper, #f6f0e2)" stroke-width="1.5" />
+						<text x={c.x + 10} y={c.y + 5} class="city-label">{c.city}</text>
+					</g>
+				{/each}
 			</g>
 		</svg>
 
@@ -535,7 +615,7 @@
 					<span class="tooltip-sunset">Earliest sunset: {tooltip.county.earliestSunset}</span>
 				{/if}
 				{#if tooltip.county.errorPct >= 3}
-					<span class="tooltip-sunset">&pm;{tooltip.county.errorPct}% — large county</span>
+					<span class="tooltip-error">&pm;{tooltip.county.errorPct}% estimate, this county covers a wide area</span>
 				{/if}
 			</div>
 		</div>
@@ -611,7 +691,12 @@
 		display: block;
 	}
 
-	.map-svg.pannable {
+	.map-svg {
+		touch-action: pan-y;
+	}
+
+	.map-svg.pannable,
+	.map-svg.pinching {
 		cursor: grab;
 		touch-action: none;
 	}
@@ -632,6 +717,21 @@
 		fill: var(--text-muted, #5f5c55);
 		letter-spacing: 0.05em;
 		text-transform: uppercase;
+	}
+
+	/* City markers */
+	.city-marker {
+		pointer-events: none;
+	}
+
+	.city-label {
+		font-family: var(--font-body);
+		font-size: 16px;
+		font-weight: 600;
+		fill: var(--text-muted, #5f5c55);
+		stroke: var(--paper, #f6f0e2);
+		stroke-width: 1.5px;
+		paint-order: stroke fill;
 	}
 
 	/* Zoom controls — anchored to .map-viewport */
@@ -845,6 +945,11 @@
 		color: var(--text-muted);
 	}
 
+	.tooltip-error {
+		color: var(--brick, #b5523b);
+		font-style: italic;
+	}
+
 	/* Info bar for touch devices */
 	.info-bar {
 		border-top: 1px solid var(--border, #ddd);
@@ -901,6 +1006,12 @@
 	.info-bar-muted {
 		color: var(--text-muted);
 		font-size: 0.75rem;
+	}
+
+	.info-bar-error {
+		color: var(--brick, #b5523b);
+		font-size: 0.75rem;
+		font-style: italic;
 	}
 
 	@media (max-width: 767px) {

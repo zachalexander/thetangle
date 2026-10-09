@@ -324,6 +324,7 @@
 					<CountyMap
 						countyDaylight={data.countyDaylight}
 						countyGeo={data.countyGeo}
+						cities={data.cities}
 						active={index === 10}
 						mode="overview"
 					/>
@@ -334,6 +335,7 @@
 					<CountyMap
 						countyDaylight={data.countyDaylight}
 						countyGeo={data.countyGeo}
+						cities={data.cities}
 						active={index === 11}
 						mode="explore"
 					/>
