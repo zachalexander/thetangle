@@ -3,7 +3,7 @@
 	import * as d3 from 'd3';
 	import * as topojson from 'topojson-client';
 
-	let { countyDaylight, countyGeo, active = false } = $props();
+	let { countyDaylight, countyGeo, active = false, mode = 'overview' } = $props();
 
 	let container = $state();
 	let svgEl = $state();
@@ -16,7 +16,7 @@
 	const isZoomed = $derived(zoomK > 1.05);
 	let showZoomHint = $state(true);
 	let isTouchDevice = $state(false);
-	let selectedZone = $state('All');
+	let selectedZone = $state('Eastern');
 
 	// Build FIPS→data lookup + percentile ranks
 	const dataByFips = $derived.by(() => {
@@ -48,50 +48,81 @@
 	const colorRange = d3.quantize(d3.interpolateRgb(NIGHT, OCHRE), colorSteps);
 	const colorScale = d3.scaleQuantize().domain([0.33, 0.65]).range(colorRange);
 
-	// Projection and path — responds to selectedZone for filtering
 	const mainZones = ['Eastern', 'Central', 'Mountain', 'Pacific'];
+
+	// Static overview map — always shows full US with timezone boundaries
+	const overviewState = $derived.by(() => {
+		if (!countyGeo) return null;
+
+		const width = 960;
+		const height = 640;
+		const padding = 40;
+		const allCounties = topojson.feature(countyGeo, countyGeo.objects.counties);
+
+		const projection = d3.geoAlbersUsa().fitExtent(
+			[[padding, padding], [width - padding, height - padding]],
+			allCounties
+		);
+		const path = d3.geoPath(projection);
+
+		const countyPaths = allCounties.features.map((f) => {
+			const fips = String(f.id).padStart(5, '0');
+			const d = dataByFips.get(fips);
+			return {
+				d: path(f),
+				fips,
+				fill: d ? colorScale(d.eveningShare) : '#ccc',
+				hatched: d && d.errorPct >= 5
+			};
+		});
+
+		const stateMesh = topojson.mesh(countyGeo, countyGeo.objects.states, (a, b) => a !== b);
+		const nationMesh = topojson.mesh(countyGeo, countyGeo.objects.nation);
+		const tzMesh = topojson.mesh(
+			countyGeo,
+			countyGeo.objects.counties,
+			(a, b) => {
+				const za = zoneByFips.get(String(a.id).padStart(5, '0'));
+				const zb = zoneByFips.get(String(b.id).padStart(5, '0'));
+				return za && zb && za !== zb && mainZones.indexOf(za) !== -1 && mainZones.indexOf(zb) !== -1;
+			}
+		);
+
+		const tzLabels = [
+			{ label: 'Pacific',  x: 210, y: 53,  angle: 12 },
+			{ label: 'Mountain', x: 355, y: 75,  angle: 8 },
+			{ label: 'Central',  x: 540, y: 95,  angle: 2 },
+			{ label: 'Eastern',  x: 762, y: 115, angle: -5 }
+		];
+
+		return { countyPaths, stateMesh, nationMesh, tzMesh, tzLabels, path, width, height };
+	});
+
+	// Interactive filtered map — responds to selectedZone
 	const mapState = $derived.by(() => {
 		if (!countyGeo) return null;
 
-		const showAll = selectedZone === 'All';
-		const width = showAll ? 960 : 1200;
-		const height = showAll ? 640 : 1400;
-		const padding = showAll ? 40 : 16;
-
+		const width = 1200;
+		const height = 1400;
+		const padding = 16;
 		const allCounties = topojson.feature(countyGeo, countyGeo.objects.counties);
 
-		// Filter features when a single zone is selected
-		const filteredFeatures = showAll
-			? allCounties.features
-			: allCounties.features.filter((f) => {
-					const fips = String(f.id).padStart(5, '0');
-					return zoneByFips.get(fips) === selectedZone;
-				});
-		const fitCollection = showAll
-			? allCounties
-			: { type: 'FeatureCollection', features: filteredFeatures };
+		const filteredFeatures = allCounties.features.filter((f) => {
+			const fips = String(f.id).padStart(5, '0');
+			return zoneByFips.get(fips) === selectedZone;
+		});
+		const fitCollection = { type: 'FeatureCollection', features: filteredFeatures };
 
-		// When filtered, find which states contain counties in this zone
 		const statesInZone = new Set();
-		if (!showAll) {
-			for (const f of filteredFeatures) {
-				statesInZone.add(String(f.id).padStart(5, '0').slice(0, 2));
-			}
+		for (const f of filteredFeatures) {
+			statesInZone.add(String(f.id).padStart(5, '0').slice(0, 2));
 		}
 
-		// State mesh: when filtered, only boundaries between states in the zone
-		const stateMesh = showAll
-			? topojson.mesh(countyGeo, countyGeo.objects.states, (a, b) => a !== b)
-			: topojson.mesh(countyGeo, countyGeo.objects.states, (a, b) => {
-					const sa = String(a.id).padStart(2, '0');
-					const sb = String(b.id).padStart(2, '0');
-					return a !== b && statesInZone.has(sa) && statesInZone.has(sb);
-				});
-
-		// Nation mesh only used in "All" view
-		const nationMesh = showAll
-			? topojson.mesh(countyGeo, countyGeo.objects.nation)
-			: null;
+		const stateMesh = topojson.mesh(countyGeo, countyGeo.objects.states, (a, b) => {
+			const sa = String(a.id).padStart(2, '0');
+			const sb = String(b.id).padStart(2, '0');
+			return a !== b && statesInZone.has(sa) && statesInZone.has(sb);
+		});
 
 		const projection = d3.geoAlbersUsa().fitExtent(
 			[[padding, padding], [width - padding, height - padding]],
@@ -111,41 +142,15 @@
 			};
 		});
 
-		// Timezone boundaries
-		// All view: edges between counties in different main timezones
-		// Filtered view: merged outline of the entire zone (coastlines + borders + tz edges)
-		const tzMesh = showAll
-			? topojson.mesh(
-				countyGeo,
-				countyGeo.objects.counties,
-				(a, b) => {
-					const za = zoneByFips.get(String(a.id).padStart(5, '0'));
-					const zb = zoneByFips.get(String(b.id).padStart(5, '0'));
-					return za && zb && za !== zb && mainZones.indexOf(za) !== -1 && mainZones.indexOf(zb) !== -1;
-				}
-			)
-			: null;
+		const zoneMerged = topojson.merge(
+			countyGeo,
+			countyGeo.objects.counties.geometries.filter((g) => {
+				const fips = String(g.id).padStart(5, '0');
+				return zoneByFips.get(fips) === selectedZone;
+			})
+		);
 
-		// Merged zone outline for filtered view
-		const zoneMerged = showAll
-			? null
-			: topojson.merge(
-				countyGeo,
-				countyGeo.objects.counties.geometries.filter((g) => {
-					const fips = String(g.id).padStart(5, '0');
-					return zoneByFips.get(fips) === selectedZone;
-				})
-			);
-
-		// Label positions: centered in each zone, snug above northern border, rotated to match border angle
-		const tzLabels = [
-			{ label: 'Pacific',  x: 210, y: 53,  angle: 12 },
-			{ label: 'Mountain', x: 355, y: 75,  angle: 8 },
-			{ label: 'Central',  x: 540, y: 95,  angle: 2 },
-			{ label: 'Eastern',  x: 762, y: 115, angle: -5 }
-		];
-
-		return { counties: allCounties, stateMesh, nationMesh, path, projection, countyPaths, tzMesh, zoneMerged, tzLabels, width, height, showAll };
+		return { stateMesh, path, projection, countyPaths, zoneMerged, width, height };
 	});
 
 	let hoveredFips = $state(null);
@@ -311,239 +316,231 @@
 	role="img"
 	aria-label="Choropleth map of the United States showing evening sunlight share by county. Western edges of time zones receive more sunlight after 5 pm."
 >
-	{#if mapState}
-		<!-- Overview toggle -->
-		<button
-			class="tz-overview-btn"
-			class:active={selectedZone === 'All'}
-			onclick={() => selectedZone = 'All'}
-		>All time zones</button>
+{#if mode === 'overview' && overviewState}
+	<!-- Full US overview map — as large as possible -->
+	<svg
+		viewBox="0 0 {overviewState.width} {overviewState.height}"
+		class="overview-svg"
+	>
+		<defs>
+			<pattern id="crosshatch-overview" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+				<line x1="0" y1="0" x2="0" y2="6" stroke="var(--paper, #f6f0e2)" stroke-width="1.5" opacity="0.55" />
+			</pattern>
+		</defs>
+		<g>
+			{#each overviewState.countyPaths as cp (cp.fips)}
+				<path
+					d={cp.d}
+					fill={cp.fill}
+					stroke="rgba(34,33,31,0.15)"
+					stroke-width="0.5"
+				/>
+				{#if cp.hatched}
+					<path d={cp.d} fill="url(#crosshatch-overview)" stroke="none" />
+				{/if}
+			{/each}
+		</g>
+		<path d={overviewState.path(overviewState.stateMesh)} fill="none" stroke="var(--ink)" stroke-width="0.8" stroke-linejoin="round" />
+		<path d={overviewState.path(overviewState.nationMesh)} fill="none" stroke="var(--ink)" stroke-width="1.2" stroke-linejoin="round" />
+		<path d={overviewState.path(overviewState.tzMesh)} fill="none" stroke="rgba(246,240,226,0.9)" stroke-width="5" stroke-linejoin="round" stroke-linecap="round" />
+		<path d={overviewState.path(overviewState.tzMesh)} fill="none" stroke="var(--ink)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" />
+		<g pointer-events="none">
+			{#each overviewState.tzLabels as tz}
+				<text x={tz.x} y={tz.y} text-anchor="middle" transform="rotate({tz.angle},{tz.x},{tz.y})" class="tz-label">{tz.label}</text>
+			{/each}
+		</g>
+	</svg>
 
-		<!-- Narrative prompt -->
-		<p class="tz-narrative">Counties on the western edge of each time zone get far more sunlight after 5 pm. Pick a time zone below to explore the data county by county.</p>
-
-		<!-- Timezone filter pills -->
-		<div class="tz-filter">
-			{#each mainZones as zone}
-				<button
-					class="tz-filter-btn"
-					class:active={selectedZone === zone}
-					onclick={() => selectedZone = zone}
-				>{zone}</button>
+	<!-- Legend -->
+	<div class="legend">
+		<span class="legend-label">Less evening sunlight</span>
+		<div class="legend-bar">
+			{#each colorRange as color}
+				<div class="legend-swatch" style="background:{color}"></div>
 			{/each}
 		</div>
+		<span class="legend-label">More evening sunlight</span>
+	</div>
+	<div class="legend-note">Crosshatched counties span a wide area; values may vary across the county.</div>
+{/if}
 
-		<div class="map-viewport">
-			<!-- svelte-ignore a11y_click_events_have_key_events -->
-			<svg
-				bind:this={svgEl}
-				viewBox="0 0 {mapState.width} {mapState.height}"
-				class="map-svg"
-				class:panning={isPanning}
-				class:pannable={isZoomed}
-				class:overview={isTouchDevice && mapState.showAll}
-				onclick={handleSvgClick}
-				onpointerdown={handlePanStart}
-				onpointermove={handlePanMove}
-				onpointerup={handlePanEnd}
-				onpointercancel={handlePanEnd}
-			>
-				<defs>
-					<pattern id="crosshatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-						<line x1="0" y1="0" x2="0" y2="6" stroke="var(--paper, #f6f0e2)" stroke-width="1.5" opacity="0.55" />
-					</pattern>
-				</defs>
-				<g class="zoom-group" transform="translate({mapState.width / 2 * (1 - zoomK) + panX * zoomK},{mapState.height / 2 * (1 - zoomK) + panY * zoomK}) scale({zoomK})">
-					<g class="counties">
-						{#each mapState.countyPaths as cp (cp.fips)}
-							<!-- svelte-ignore a11y_no_static_element_interactions -->
-							<path
-								d={cp.d}
-								fill={cp.fill}
-								stroke={activeFips === cp.fips ? 'var(--ink)' : 'rgba(34,33,31,0.12)'}
-								stroke-width={activeFips === cp.fips ? (mapState.showAll ? 1.5 : 4) : 0.8}
-								onmouseenter={(e) => handleCountyEnter(e, cp)}
-								onmousemove={handleCountyMove}
-								onmouseleave={handleCountyLeave}
-								ontouchstart={(e) => { if (!isTouchDevice || !mapState.showAll) handleCountyTouch(e, cp); }}
-							/>
-							{#if cp.hatched}
-								<path
-									d={cp.d}
-									fill="url(#crosshatch)"
-									stroke="none"
-									pointer-events="none"
-								/>
-							{/if}
-						{/each}
-					</g>
+{#if mode === 'explore' && mapState}
+	<!-- Narrative prompt -->
+	<p class="tz-narrative">Counties on the western edge of each time zone get far more sunlight after 5 pm. Pick a time zone below to explore the data county by county.</p>
 
-					{#if mapState.showAll}
-						<path
-							d={mapState.path(mapState.stateMesh)}
-							fill="none"
-							stroke="var(--ink)"
-							stroke-width="0.8"
-							stroke-linejoin="round"
-						/>
+	<!-- Timezone filter pills -->
+	<div class="tz-filter">
+		{#each mainZones as zone}
+			<button
+				class="tz-filter-btn"
+				class:active={selectedZone === zone}
+				onclick={() => selectedZone = zone}
+			>{zone}</button>
+		{/each}
+	</div>
 
-						<path
-							d={mapState.path(mapState.nationMesh)}
-							fill="none"
-							stroke="var(--ink)"
-							stroke-width="1.2"
-							stroke-linejoin="round"
-						/>
-					{/if}
-
-					<!-- Timezone boundaries -->
-					{#if mapState.tzMesh}
-						<path
-							d={mapState.path(mapState.tzMesh)}
-							fill="none"
-							stroke="rgba(246,240,226,0.9)"
-							stroke-width="5"
-							stroke-linejoin="round"
-							stroke-linecap="round"
-						/>
-						<path
-							d={mapState.path(mapState.tzMesh)}
-							fill="none"
-							stroke="var(--ink)"
-							stroke-width="2"
-							stroke-linejoin="round"
-							stroke-linecap="round"
-						/>
-					{/if}
-					{#if mapState.zoneMerged}
-						<path
-							d={mapState.path(mapState.zoneMerged)}
-							fill="none"
-							stroke="var(--ink)"
-							stroke-width="3"
-							stroke-linejoin="round"
-							stroke-linecap="round"
-						/>
-					{/if}
-
-					</g>
-
-				<!-- Timezone labels — outside zoom group, hidden when filtering to one zone -->
-				{#if mapState.showAll}
-					<g pointer-events="none">
-						{#each mapState.tzLabels as tz}
-							<text
-								x={tz.x}
-								y={tz.y}
-								text-anchor="middle"
-								transform="rotate({tz.angle},{tz.x},{tz.y})"
-								class="tz-label"
-							>{tz.label}</text>
-						{/each}
-					</g>
-				{/if}
-			</svg>
-
-			<!-- Zoom controls — hidden on mobile overview -->
-			{#if !(isTouchDevice && mapState.showAll)}
-				<div class="zoom-controls">
-					<button class="zoom-btn" onclick={handleZoomIn} aria-label="Zoom in">+</button>
-					<button class="zoom-btn" onclick={handleZoomOut} aria-label="Zoom out">&minus;</button>
-					{#if isZoomed}
-						<button class="zoom-btn reset-btn" onclick={handleReset} aria-label="Reset zoom">Reset</button>
-					{/if}
-				</div>
-			{/if}
-
-			<!-- Zoom hint (desktop only) -->
-			{#if showZoomHint && active && !isTouchDevice}
-				<div class="zoom-hint">
-					<span class="zoom-hint-text">
-						Scroll to zoom (Ctrl + wheel) or use +/&minus; buttons
-					</span>
-				</div>
-			{/if}
-		</div>
-
-		<!-- Legend -->
-		<div class="legend">
-			<span class="legend-label">Less evening sunlight</span>
-			<div class="legend-bar">
-				{#each colorRange as color}
-					<div class="legend-swatch" style="background:{color}"></div>
-				{/each}
-			</div>
-			<span class="legend-label">More evening sunlight</span>
-		</div>
-		<div class="legend-note">Crosshatched counties span a wide area; values may vary across the county.</div>
-
-		<!-- Floating tooltip (desktop only) -->
-		{#if !isTouchDevice && tooltip.visible && tooltip.county}
-			<div class="tooltip" style={tooltipStyle}>
-				<div class="tooltip-header">
-					<strong>{tooltip.county.name}, {tooltip.county.state}</strong>
-				</div>
-				{#if gaugeData}
-					<div class="tooltip-gauge-section">
-						<span class="tooltip-caption">Sunlight outside work hours</span>
-						<svg class="tooltip-gauge" viewBox="0 0 130 74" width="130" height="74" aria-hidden="true">
-							<path d={gaugeData.morningArc} fill="none" stroke="#23304a" stroke-width="7" />
-							<path d={gaugeData.eveningArc} fill="none" stroke="#d9a441" stroke-width="7" />
-							<line x1={gaugeData.cx} y1={gaugeData.cy - gaugeData.r - 5} x2={gaugeData.cx} y2={gaugeData.cy - gaugeData.r + 5} stroke="var(--ink, #22211f)" stroke-width="1" opacity="0.25" />
-							<line x1={gaugeData.cx} y1={gaugeData.cy} x2={gaugeData.sx} y2={gaugeData.sy} stroke="var(--ink, #22211f)" stroke-width="1.5" />
-							<circle cx={gaugeData.cx} cy={gaugeData.cy} r="2.5" fill="var(--ink, #22211f)" />
-							<text x={gaugeData.cx} y="10" text-anchor="middle" class="gauge-pct">{gaugeData.pct}% evening</text>
-							<text x="8" y={gaugeData.cy + 12} class="gauge-label">Before 9 am</text>
-							<text x="122" y={gaugeData.cy + 12} text-anchor="end" class="gauge-label">After 5 pm</text>
-						</svg>
-					</div>
-				{/if}
-				<div class="tooltip-stats">
-					<span>{tooltip.county.eveningHours} hrs of sunlight after 5 pm / year</span>
-					<span class="tooltip-rank">More evening sun than {tooltip.county.percentile}% of US counties</span>
-					{#if tooltip.county.earliestSunset}
-						<span class="tooltip-sunset">Earliest sunset: {tooltip.county.earliestSunset}</span>
-					{/if}
-					{#if tooltip.county.errorPct >= 3}
-						<span class="tooltip-sunset">&pm;{tooltip.county.errorPct}% — large county</span>
-					{/if}
-				</div>
-			</div>
-		{/if}
-
-		<!-- Bottom info bar (touch devices only) -->
-		{#if isTouchDevice && tooltip.visible && tooltip.county}
-			<div class="info-bar">
+	<!-- Info bar (touch devices only) — always present to prevent layout shift -->
+	{#if isTouchDevice}
+		<div class="info-bar">
+			{#if tooltip.visible && tooltip.county && gaugeData}
 				<div class="info-bar-header">
 					<strong>{tooltip.county.name}, {tooltip.county.state}</strong>
 				</div>
-				{#if gaugeData}
-					<div class="info-bar-gauge-row">
-						<svg class="info-bar-gauge" viewBox="0 0 130 74" width="100" height="57" aria-hidden="true">
-							<path d={gaugeData.morningArc} fill="none" stroke="#23304a" stroke-width="7" />
-							<path d={gaugeData.eveningArc} fill="none" stroke="#d9a441" stroke-width="7" />
-							<line x1={gaugeData.cx} y1={gaugeData.cy - gaugeData.r - 5} x2={gaugeData.cx} y2={gaugeData.cy - gaugeData.r + 5} stroke="var(--ink, #22211f)" stroke-width="1" opacity="0.25" />
-							<line x1={gaugeData.cx} y1={gaugeData.cy} x2={gaugeData.sx} y2={gaugeData.sy} stroke="var(--ink, #22211f)" stroke-width="1.5" />
-							<circle cx={gaugeData.cx} cy={gaugeData.cy} r="2.5" fill="var(--ink, #22211f)" />
-							<text x={gaugeData.cx} y="10" text-anchor="middle" class="gauge-pct">{gaugeData.pct}% evening</text>
-							<text x="8" y={gaugeData.cy + 12} class="gauge-label">Before 9 am</text>
-							<text x="122" y={gaugeData.cy + 12} text-anchor="end" class="gauge-label">After 5 pm</text>
-						</svg>
-						<div class="info-bar-stats">
-							<span>{tooltip.county.eveningHours} hrs after 5 pm / year</span>
-							<span class="info-bar-muted">More evening sun than {tooltip.county.percentile}% of US counties</span>
-							{#if tooltip.county.earliestSunset}
-								<span class="info-bar-muted">Earliest sunset: {tooltip.county.earliestSunset}</span>
-							{/if}
-							{#if tooltip.county.errorPct >= 3}
-								<span class="info-bar-muted">&pm;{tooltip.county.errorPct}% — large county</span>
-							{/if}
-						</div>
+				<div class="info-bar-gauge-row">
+					<svg class="info-bar-gauge" viewBox="0 0 130 74" width="100" height="57" aria-hidden="true">
+						<path d={gaugeData.morningArc} fill="none" stroke="#23304a" stroke-width="7" />
+						<path d={gaugeData.eveningArc} fill="none" stroke="#d9a441" stroke-width="7" />
+						<line x1={gaugeData.cx} y1={gaugeData.cy - gaugeData.r - 5} x2={gaugeData.cx} y2={gaugeData.cy - gaugeData.r + 5} stroke="var(--ink, #22211f)" stroke-width="1" opacity="0.25" />
+						<line x1={gaugeData.cx} y1={gaugeData.cy} x2={gaugeData.sx} y2={gaugeData.sy} stroke="var(--ink, #22211f)" stroke-width="1.5" />
+						<circle cx={gaugeData.cx} cy={gaugeData.cy} r="2.5" fill="var(--ink, #22211f)" />
+						<text x={gaugeData.cx} y="10" text-anchor="middle" class="gauge-pct">{gaugeData.pct}% evening</text>
+						<text x="8" y={gaugeData.cy + 12} class="gauge-label">Before 9 am</text>
+						<text x="122" y={gaugeData.cy + 12} text-anchor="end" class="gauge-label">After 5 pm</text>
+					</svg>
+					<div class="info-bar-stats">
+						<span>{tooltip.county.eveningHours} hrs of sunlight after 5 pm / year</span>
+						<span class="info-bar-muted">More evening sun than {tooltip.county.percentile}% of US counties</span>
+						{#if tooltip.county.earliestSunset}
+							<span class="info-bar-muted">Earliest sunset: {tooltip.county.earliestSunset}</span>
+						{/if}
+						{#if tooltip.county.errorPct >= 3}
+							<span class="info-bar-muted">&pm;{tooltip.county.errorPct}% — large county</span>
+						{/if}
 					</div>
+				</div>
+			{:else}
+				<div class="info-bar-placeholder">
+					<span>Tap a county to see its evening sunlight data</span>
+				</div>
+			{/if}
+		</div>
+	{/if}
+
+	<div class="map-viewport">
+		<!-- svelte-ignore a11y_click_events_have_key_events -->
+		<svg
+			bind:this={svgEl}
+			viewBox="0 0 {mapState.width} {mapState.height}"
+			class="map-svg"
+			class:panning={isPanning}
+			class:pannable={isZoomed}
+			onclick={handleSvgClick}
+			onpointerdown={handlePanStart}
+			onpointermove={handlePanMove}
+			onpointerup={handlePanEnd}
+			onpointercancel={handlePanEnd}
+		>
+			<defs>
+				<pattern id="crosshatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+					<line x1="0" y1="0" x2="0" y2="6" stroke="var(--paper, #f6f0e2)" stroke-width="1.5" opacity="0.55" />
+				</pattern>
+			</defs>
+			<g class="zoom-group" transform="translate({mapState.width / 2 * (1 - zoomK) + panX * zoomK},{mapState.height / 2 * (1 - zoomK) + panY * zoomK}) scale({zoomK})">
+				<g class="counties">
+					{#each mapState.countyPaths as cp (cp.fips)}
+						<!-- svelte-ignore a11y_no_static_element_interactions -->
+						<path
+							d={cp.d}
+							fill={cp.fill}
+							stroke="rgba(34,33,31,0.25)"
+							stroke-width="0.8"
+							onmouseenter={(e) => handleCountyEnter(e, cp)}
+							onmousemove={handleCountyMove}
+							onmouseleave={handleCountyLeave}
+							ontouchstart={(e) => handleCountyTouch(e, cp)}
+						/>
+						{#if cp.hatched}
+							<path
+								d={cp.d}
+								fill="url(#crosshatch)"
+								stroke="none"
+								pointer-events="none"
+							/>
+						{/if}
+					{/each}
+				</g>
+
+				<!-- Active county highlight -->
+				{#if activeFips}
+					{@const activeCounty = mapState.countyPaths.find(cp => cp.fips === activeFips)}
+					{#if activeCounty}
+						<path
+							d={activeCounty.d}
+							fill="none"
+							stroke="var(--accent, #3b4fd9)"
+							stroke-width="4"
+							stroke-linejoin="round"
+							pointer-events="none"
+						/>
+					{/if}
 				{/if}
+
+				{#if mapState.zoneMerged}
+					<path
+						d={mapState.path(mapState.zoneMerged)}
+						fill="none"
+						stroke="var(--ink)"
+						stroke-width="3"
+						stroke-linejoin="round"
+						stroke-linecap="round"
+					/>
+				{/if}
+			</g>
+		</svg>
+
+		<!-- Zoom controls -->
+		<div class="zoom-controls" class:zoom-bottom={selectedZone === 'Eastern' || selectedZone === 'Mountain'}>
+			<button class="zoom-btn" onclick={handleZoomIn} aria-label="Zoom in">+</button>
+			<button class="zoom-btn" onclick={handleZoomOut} aria-label="Zoom out">&minus;</button>
+			{#if isZoomed}
+				<button class="zoom-btn reset-btn" onclick={handleReset} aria-label="Reset zoom">Reset</button>
+			{/if}
+		</div>
+
+		<!-- Zoom hint (desktop only) -->
+		{#if showZoomHint && active && !isTouchDevice}
+			<div class="zoom-hint">
+				<span class="zoom-hint-text">
+					Scroll to zoom (Ctrl + wheel) or use +/&minus; buttons
+				</span>
 			</div>
 		{/if}
+	</div>
+
+	<!-- Floating tooltip (desktop only) -->
+	{#if !isTouchDevice && tooltip.visible && tooltip.county}
+		<div class="tooltip" style={tooltipStyle}>
+			<div class="tooltip-header">
+				<strong>{tooltip.county.name}, {tooltip.county.state}</strong>
+			</div>
+			{#if gaugeData}
+				<div class="tooltip-gauge-section">
+					<span class="tooltip-caption">Sunlight outside work hours</span>
+					<svg class="tooltip-gauge" viewBox="0 0 130 74" width="130" height="74" aria-hidden="true">
+						<path d={gaugeData.morningArc} fill="none" stroke="#23304a" stroke-width="7" />
+						<path d={gaugeData.eveningArc} fill="none" stroke="#d9a441" stroke-width="7" />
+						<line x1={gaugeData.cx} y1={gaugeData.cy - gaugeData.r - 5} x2={gaugeData.cx} y2={gaugeData.cy - gaugeData.r + 5} stroke="var(--ink, #22211f)" stroke-width="1" opacity="0.25" />
+						<line x1={gaugeData.cx} y1={gaugeData.cy} x2={gaugeData.sx} y2={gaugeData.sy} stroke="var(--ink, #22211f)" stroke-width="1.5" />
+						<circle cx={gaugeData.cx} cy={gaugeData.cy} r="2.5" fill="var(--ink, #22211f)" />
+						<text x={gaugeData.cx} y="10" text-anchor="middle" class="gauge-pct">{gaugeData.pct}% evening</text>
+						<text x="8" y={gaugeData.cy + 12} class="gauge-label">Before 9 am</text>
+						<text x="122" y={gaugeData.cy + 12} text-anchor="end" class="gauge-label">After 5 pm</text>
+					</svg>
+				</div>
+			{/if}
+			<div class="tooltip-stats">
+				<span>{tooltip.county.eveningHours} hrs of sunlight after 5 pm / year</span>
+				<span class="tooltip-rank">More evening sun than {tooltip.county.percentile}% of US counties</span>
+				{#if tooltip.county.earliestSunset}
+					<span class="tooltip-sunset">Earliest sunset: {tooltip.county.earliestSunset}</span>
+				{/if}
+				{#if tooltip.county.errorPct >= 3}
+					<span class="tooltip-sunset">&pm;{tooltip.county.errorPct}% — large county</span>
+				{/if}
+			</div>
+		</div>
 	{/if}
+{/if}
 </div>
 
 <style>
@@ -558,29 +555,12 @@
 		position: relative;
 	}
 
-	/* Overview button */
-	.tz-overview-btn {
+	/* Static overview map */
+	.overview-svg {
+		width: 100%;
+		height: auto;
 		display: block;
-		margin: 0 auto 12px;
-		font-family: var(--font-body);
-		font-size: 0.75rem;
-		font-weight: 600;
-		padding: 4px 14px;
-		border: 1.5px solid var(--ink, #22211f);
-		border-radius: 999px;
-		background: transparent;
-		color: var(--ink, #22211f);
-		cursor: pointer;
-		line-height: 1.3;
-	}
-
-	.tz-overview-btn:hover {
-		background: rgba(34, 33, 31, 0.06);
-	}
-
-	.tz-overview-btn.active {
-		background: var(--ink, #22211f);
-		color: var(--paper, #f6f0e2);
+		pointer-events: none;
 	}
 
 	/* Narrative prompt */
@@ -588,9 +568,9 @@
 		text-align: center;
 		font-family: var(--font-body);
 		font-size: 0.8125rem;
-		line-height: 1.5;
+		line-height: 1.4;
 		color: var(--text-muted);
-		margin: 0 auto 14px;
+		margin: 0 auto 8px;
 		max-width: 420px;
 	}
 
@@ -600,7 +580,7 @@
 		flex-wrap: wrap;
 		gap: 6px;
 		justify-content: center;
-		margin-bottom: 14px;
+		margin-bottom: 8px;
 	}
 
 	.tz-filter-btn {
@@ -623,10 +603,6 @@
 	.tz-filter-btn.active {
 		background: var(--ink, #22211f);
 		color: var(--paper, #f6f0e2);
-	}
-
-	.map-svg.overview {
-		pointer-events: none;
 	}
 
 	.map-svg {
@@ -658,7 +634,7 @@
 		text-transform: uppercase;
 	}
 
-	/* Zoom controls — anchored to .map-viewport, not county-map */
+	/* Zoom controls — anchored to .map-viewport */
 	.zoom-controls {
 		position: absolute;
 		top: 8px;
@@ -698,6 +674,11 @@
 		padding: 0 10px;
 		font-size: 0.6875rem;
 		font-weight: 600;
+	}
+
+	.zoom-controls.zoom-bottom {
+		top: auto;
+		bottom: 8px;
 	}
 
 	/* Zoom hint */
@@ -864,18 +845,32 @@
 		color: var(--text-muted);
 	}
 
-	/* Bottom info bar for touch devices */
+	/* Info bar for touch devices */
 	.info-bar {
-		border-top: 1.5px solid var(--border, #ddd);
+		border-top: 1px solid var(--border, #ddd);
+		border-bottom: 1px solid var(--border, #ddd);
 		background: var(--bg, #fff);
+		margin: 12px 0;
 		font-family: var(--font-body);
 		font-size: 0.8125rem;
 		line-height: 1.4;
 		color: var(--text);
+		min-height: 56px;
+	}
+
+	.info-bar-placeholder {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		min-height: 56px;
+		color: var(--text-muted);
+		font-style: italic;
+		font-size: 0.8125rem;
 	}
 
 	.info-bar-header {
 		padding: 6px 12px 2px;
+		text-align: center;
 	}
 
 	.info-bar-header strong {
@@ -884,9 +879,10 @@
 
 	.info-bar-gauge-row {
 		display: flex;
-		align-items: flex-start;
-		gap: 12px;
-		padding: 2px 12px 4px;
+		flex-direction: column;
+		align-items: center;
+		gap: 4px;
+		padding: 2px 12px 6px;
 	}
 
 	.info-bar-gauge {
@@ -897,8 +893,9 @@
 	.info-bar-stats {
 		display: flex;
 		flex-direction: column;
+		align-items: center;
 		gap: 1px;
-		padding-top: 2px;
+		text-align: center;
 	}
 
 	.info-bar-muted {

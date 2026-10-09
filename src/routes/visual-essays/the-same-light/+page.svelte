@@ -10,28 +10,29 @@
 
 	const stepIds = [
 		'cold-open', 'hook', 'guess', 'band-one', 'band-two', 'evening',
-		'why-timezone', 'why-latitude', 'the-stack', 'clock-rules', 'map', 'close'
+		'why-timezone', 'why-latitude', 'the-stack', 'clock-rules', 'map-overview', 'map-explore', 'close'
 	];
 
 	const cardText = $derived([
 		'', // cold-open — no text
-		`Bangor, Maine and Indianapolis get the same amount of daylight in a year — about 4,450 hours each. Indianapolis gets ${data.comparison.eveningPctMore}% more sunlight after 5\u00a0pm.`,
-		'Both cities are on Eastern time. Here\u2019s a harder one: Boston or Detroit — who gets more sunlight after 5\u00a0pm?',
-		'This is one city\u2019s year of daylight — every day from January to December, sunrise to sunset.',
-		'Now a second city. Same total area — the band is the same height overall. But the shape is different, and it sits at a different place on the clock.',
-		'Shade everything after 5\u00a0pm. That\u2019s your evening sunlight — hours of sun still up past five. Indianapolis: 910 hours. Bangor: 572.',
-		'They\u2019re on the same clock, but Indianapolis sits at the western edge of Eastern time. The sun runs behind the clock there — later sunrises, later sunsets.',
-		'And Bangor is five degrees further north. Same total light, but a bigger swing — longer summers, shorter winters. In December, both forces stack.',
-		'December 9. Bangor: sunset at 3:53\u00a0pm. Indianapolis: 5:19\u00a0pm. An hour and a half apart. Same time zone.',
-		'What if we changed the clocks? Same city, three rules. The band slides — but the total never changes.',
-		'Here\u2019s the whole country. Evening sunlight by county — striped by time-zone lines. Arizona, as always, opts out.',
-		'The light never went anywhere. The Earth tilted it across the year. We drew lines on a map and called it time.'
+		`Bangor, Maine and Indianapolis are both on Eastern time. They spring forward and fall back on the same day. But Indianapolis gets ${data.comparison.eveningPctMore}% more sunlight after 5\u00a0pm — about 340 extra hours a\u00a0year.`,
+		'Daylight saving gives everyone an extra hour of evening light in summer. But it can\u2019t fix where you sit inside your time zone. Boston or Detroit — who gets more sun after work?',
+		'This is one city\u2019s year of daylight — every day from January to December, sunrise to sunset. Notice the jump in March and November when the clocks change.',
+		'Now a second city. The band shifts to a different place on the clock. Daylight saving moves both bands the same way — but it can\u2019t close the gap between them.',
+		'Shade everything after 5\u00a0pm. That\u2019s your evening sunlight — hours you could actually spend outside after work. Indianapolis: 910 hours. Bangor: 572. More evening light means more time to exercise, decompress, see people. Less of it is linked to worse sleep and higher rates of seasonal depression.',
+		'Indianapolis sits at the western edge of Eastern time. The sun runs behind the clock there — later sunrises, later sunsets. Daylight saving helps, but geography is doing most of the heavy lifting.',
+		'Bangor is five degrees further north, which makes the seasonal swing wider — longer summers, shorter winters. In December, both forces stack against it. No clock rule can undo that.',
+		'December 9. Bangor: sunset at 3:53\u00a0pm. Indianapolis: 5:19\u00a0pm. An hour and a half apart. Same time zone, same clock change, same rules — different geography.',
+		'Every year, people argue about making daylight saving permanent. Sleep researchers say no — morning light sets your circadian clock, and late sunrises cause real harm. But the debate assumes the effect is the same everywhere. It isn\u2019t. Indianapolis already has late sunrises. Permanent DST would push its December sunrise past 9\u00a0am. Bangor\u2019s problem is the opposite — it\u2019s dark by 4\u00a0pm no matter what.',
+		'Here\u2019s the whole country. Evening sunlight by county — you can see the time-zone lines cut right through it. The pattern has nothing to do with the clock. Arizona, as always, opts out entirely.',
+		'', // map-explore — no card, interactive
+		'None of this changes from year to year. The tilt is the same. The orbit is the same. Daylight saving shifts the clock, but it can\u2019t move the sun. The right answer to the clock debate depends on where you are — and that\u2019s the part no one talks about.'
 	]);
 </script>
 
 <OgMeta
 	title="The Same Light"
-	description="Every place gets the same total daylight per year. Latitude reshapes it across seasons. Time zones shift it between morning and evening."
+	description="Every spring we change the clocks to save daylight. But how much evening sun you actually get depends far more on where you live than what the clock says."
 	url="https://thewildplot.com/visual-essays/the-same-light"
 />
 
@@ -42,8 +43,8 @@
 			<p class="eyebrow">Daylight &middot; Time Zones</p>
 			<h1>The Same Light</h1>
 			<p class="dek">
-				Every place gets the same total daylight per year. Latitude reshapes it across seasons.
-				Time zones shift it between morning and evening.
+				Every spring we change the clocks to save daylight.
+				But how much evening sun you actually get depends far more on where you live than what the clock says.
 			</p>
 			<p class="byline">By Zach Alexander</p>
 		</div>
@@ -318,17 +319,28 @@
 					</svg>
 				</div>
 
-				<!-- 10: map — US choropleth -->
+				<!-- 10: map overview — full US choropleth -->
 				<div class="viz-panel" class:active={index === 10}>
 					<CountyMap
 						countyDaylight={data.countyDaylight}
 						countyGeo={data.countyGeo}
 						active={index === 10}
+						mode="overview"
 					/>
 				</div>
 
-				<!-- 11: close — two windows revisited, both lit -->
+				<!-- 11: map explore — interactive timezone filter -->
 				<div class="viz-panel" class:active={index === 11}>
+					<CountyMap
+						countyDaylight={data.countyDaylight}
+						countyGeo={data.countyGeo}
+						active={index === 11}
+						mode="explore"
+					/>
+				</div>
+
+				<!-- 12: close — two windows revisited, both lit -->
+				<div class="viz-panel" class:active={index === 12}>
 					<svg viewBox="0 0 480 320" class="viz-svg">
 						<!-- Left window (lit warmly) -->
 						<rect x="60" y="60" width="140" height="180" rx="4" fill="none" stroke="var(--ink)" stroke-width="2"/>
@@ -723,8 +735,8 @@
 			min-height: 85vh;
 		}
 
-		/* Hide scroll card on the map step so it doesn't block the interactive map */
-		.step[data-step="map"] .scroll-card {
+		/* Hide scroll card on the explore step so it doesn't block the interactive map */
+		.step[data-step="map-explore"] .scroll-card {
 			display: none;
 		}
 
