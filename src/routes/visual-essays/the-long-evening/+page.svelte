@@ -40,9 +40,9 @@
 </script>
 
 <OgMeta
-	title="The Same Light"
+	title="The Long Evening"
 	description="Every spring we change the clocks to save daylight. But how much evening sun you actually get depends far more on where you live than what the clock says."
-	url="https://thewildplot.com/visual-essays/the-same-light"
+	url="https://thewildplot.com/visual-essays/the-long-evening"
 />
 
 <main class="story" style="--story-color: #23304a; --story-ink: #f6f0e2; --story-ochre: #d9a441;">
@@ -50,7 +50,7 @@
 	<header class="story-header">
 		<div class="header-inner">
 			<p class="eyebrow">Daylight &middot; Time Zones</p>
-			<h1>The Same Light</h1>
+			<h1>The Long Evening</h1>
 			<p class="dek">
 				Every spring we change the clocks to save daylight.
 				But how much evening sun you actually get depends far more on where you live than what the clock says.

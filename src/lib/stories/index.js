@@ -1,4 +1,4 @@
-import { theSameLight } from './the-same-light.js';
+import { theLongEvening } from './the-long-evening.js';
 
-export const stories = [theSameLight];
+export const stories = [theLongEvening];
 export const featured = stories.filter((s) => s.featured);

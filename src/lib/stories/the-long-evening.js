@@ -1,6 +1,6 @@
-export const theSameLight = {
-	slug: 'the-same-light',
-	title: 'The Same Light',
+export const theLongEvening = {
+	slug: 'the-long-evening',
+	title: 'The Long Evening',
 	description:
 		'Every place gets the same total daylight per year. Latitude reshapes it across seasons. Time zones shift it between morning and evening.',
 	date: '2026-10-08',
