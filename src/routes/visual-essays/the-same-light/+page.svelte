@@ -7,6 +7,15 @@
 
 	let index = $state(0);
 	let progress = $state(0);
+	let videoTime = $state(0);
+	let showJuno = $derived(videoTime >= 2.5);
+
+	function handleVideoEnded(e) {
+		setTimeout(() => {
+			e.target.currentTime = 0;
+			e.target.play();
+		}, 3000);
+	}
 
 	const stepIds = [
 		'cold-open', 'hook', 'guess', 'band-one', 'band-two', 'evening',
@@ -52,23 +61,36 @@
 
 	<!-- Cold open -->
 	<section class="cold-open">
-		<div class="speech-bubble">
-			{#each ['Hey', 'Juno,', 'where', 'are', 'you', 'right', 'now?'] as word, i}
-				<span class="speech-word" style="animation-delay: {0.3 + i * 0.15}s">{word}</span>{' '}
-			{/each}
-			<svg class="speech-tail" width="24" height="18" viewBox="0 -2 24 20" fill="none" overflow="hidden">
-				<path d="M0 -2 L0 0 C16 8, 14 14, 10 18 C16 12, 20 6, 24 0 L24 -2 Z" fill="var(--bg, #fffdf8)" stroke="none"/>
-				<path d="M0 0 C16 8, 14 14, 10 18 C16 12, 20 6, 24 0" fill="none" stroke="var(--ink)" stroke-width="2" stroke-linecap="butt"/>
-			</svg>
-		</div>
+		{#if !showJuno}
+			<div class="speech-bubble speech-bubble-theo">
+				{#each ['Hey', 'Juno,', 'where', 'are', 'you', 'right', 'now?'] as word, i}
+					<span class="speech-word" style="animation-delay: {0.3 + i * 0.15}s">{word}</span>{' '}
+				{/each}
+				<svg class="speech-tail" width="24" height="18" viewBox="0 -2 24 20" fill="none" overflow="hidden">
+					<path d="M0 -2 L0 0 C16 8, 14 14, 10 18 C16 12, 20 6, 24 0 L24 -2 Z" fill="var(--bg, #fffdf8)" stroke="none"/>
+					<path d="M0 0 C16 8, 14 14, 10 18 C16 12, 20 6, 24 0" fill="none" stroke="var(--ink)" stroke-width="2" stroke-linecap="butt"/>
+				</svg>
+			</div>
+		{:else}
+			<div class="speech-bubble speech-bubble-juno">
+				{#each ['Hey', 'Theo,', "I'm", 'currently', 'in', 'Maine', 'camping', 'in', 'Acadia', 'National', 'Park.'] as word, i}
+					<span class="speech-word" style="animation-delay: {i * 0.15}s">{word}</span>{' '}
+				{/each}
+				<svg class="speech-tail" width="24" height="18" viewBox="0 -2 24 20" fill="none" overflow="hidden">
+					<path d="M0 -2 L0 0 C16 8, 14 14, 10 18 C16 12, 20 6, 24 0 L24 -2 Z" fill="var(--bg, #fffdf8)" stroke="none"/>
+					<path d="M0 0 C16 8, 14 14, 10 18 C16 12, 20 6, 24 0" fill="none" stroke="var(--ink)" stroke-width="2" stroke-linecap="butt"/>
+				</svg>
+			</div>
+		{/if}
 		<!-- svelte-ignore a11y_media_has_caption -->
 		<video
 			class="cold-open-video"
 			src="/video/cold-open.mp4"
 			autoplay
-			loop
 			muted
 			playsinline
+			bind:currentTime={videoTime}
+			onended={handleVideoEnded}
 		></video>
 	</section>
 
@@ -503,6 +525,7 @@
 	}
 
 	.cold-open-video {
+		display: block;
 		width: 100%;
 		max-width: 640px;
 		height: auto;
@@ -526,6 +549,13 @@
 		font-weight: 600;
 		color: var(--ink);
 		max-width: 140px;
+	}
+
+	.speech-bubble-juno {
+		align-self: flex-end;
+		margin-left: 0;
+		margin-right: 6%;
+		max-width: 200px;
 	}
 
 	.speech-tail {
@@ -827,8 +857,12 @@
 			max-width: 320px;
 		}
 
-		.speech-bubble {
+		.speech-bubble-theo {
 			margin-left: 15%;
+		}
+
+		.speech-bubble-juno {
+			margin-right: 15%;
 		}
 
 		.viz-svg {
